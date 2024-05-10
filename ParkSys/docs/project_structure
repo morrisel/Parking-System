@@ -1,0 +1,35 @@
+dvlp/
+├── Parking-System/
+│   ├── server/            # TCP Server code
+│   ├── db/                # Database related code/scripts
+│   ├── stm32-bbg/         # STM32 and BBG code
+│   ├── docs/              # Project documentation
+│   ├── config/            # Configuration files
+│   ├── logs/              # Log files for each component
+│   ├── requirements.txt   # Python dependencies
+│   ├── Makefile           # For project-wide build tasks
+│   └── README.md          # Brief overall project description
+├── .gitignore             # Standard Git ignore file
+
+
+
+dvlp/
+├── ParkSys/
+│   ├── bin/                 # Linked files for running
+│   ├── build/
+│   │   ├── scripts/         # Sripts files csh/tcsh or bash files
+│   │   ├── src/
+│   │   │   ├── server/      # TCP Server code
+│   │   │   └── stm32-bbg/   # STM32 and BBG code
+│   │   ├── make/
+│   │   │   └── Makefile     # For project-wide build tasks
+│   │   └── config/          # Configuration files
+│   ├── docs/                # Project documentation
+│   ├── logs/                # Log files for each component
+│   ├── tests/               # Tests for each component
+│   ├── tmp/                 # 
+│   ├── requirements.txt     # csh/bash/Perl
+│   └── README.md            # Brief overall project description
+├── db/                      # Database related code/scripts
+└── .gitignore               # Standard Git ignore file
+
