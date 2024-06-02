@@ -1,0 +1,3 @@
+Zone A,5.82
+Zone B,3.50
+Zone C,2.25
