@@ -1,4 +1,4 @@
-/* gcc pipe_client.c -o out_pipe_client */
+/* gcc tcp_client.c -o out_tcp_client */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,4 +52,3 @@ int main()
 
 	return 0;
 }
-
