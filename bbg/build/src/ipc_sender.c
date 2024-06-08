@@ -1,4 +1,6 @@
-/* gcc ipc_connector.c -o out_ipc_connector */
+/* gcc ipc_sender.c -o out_ipc_sender */
+/* ipc_sender.c */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,23 +11,29 @@
 #include <errno.h>
 #include <signal.h>
 
-#define FIFO_PATH "tmp/gps_pipe"	// Path to the named pipe (FIFO)
-#define BUFFER_SIZE 256				// Buffer size for reading/writing data
+#define FIFO_PATH "tmp/gps_pipe"	/* Path to the named pipe (FIFO) */
+#define BUFFER_SIZE 256				/* Buffer size for reading/writing data */
 
-volatile sig_atomic_t running = 1;	// Flag to control program execution
+volatile sig_atomic_t running = 1;	/* Flag to control program execution */
 
-// Signal handler for graceful shutdown
+/* Signal handler for graceful shutdown */
 void signal_handler(int signum)
 {
-	running = 0;	// Set flag to stop the main loop
+	running = 0;	/* Set flag to stop the main loop */
 }
 
 int main()
 {
-	// Check if FIFO exists, create if not
+	int      fifo_fd;
+	char     buffer[BUFFER_SIZE];
+	ssize_t  bwr;
+	FILE     *dfile;
+
+
+	/* Check if FIFO exists, create if not */
 	if (access(FIFO_PATH, F_OK) == -1)
 	{
-		// FIFO doesn't exist, create it
+		/* FIFO doesn't exist, create it */
 		if (mkfifo(FIFO_PATH, 0666) == -1)
 		{
 			perror("Error creating FIFO");
@@ -33,42 +41,42 @@ int main()
 		}
 	}
 
-	// Open the FIFO for writing (non-blocking and synchronous)
-	int fifo_fd = open(FIFO_PATH, O_WRONLY | O_NONBLOCK | O_SYNC);
+	/* Open the FIFO for writing (non-blocking and synchronous) */
+	fifo_fd = open(FIFO_PATH, O_WRONLY | O_NONBLOCK | O_SYNC);
 	if (fifo_fd == -1)
 	{
 		perror("Error opening FIFO");
 		exit(EXIT_FAILURE);
 	}
 
-	// Set up signal handler for SIGINT (Ctrl+C)
-    if (signal(SIGINT, signal_handler) == SIG_ERR) {
+	/* Set up signal handler for SIGINT (Ctrl+C) */
+    if (signal(SIGINT, signal_handler) == SIG_ERR)
+	{
         perror("Error setting signal handler");
-        close(fifo_fd);  // Close FIFO if signal setup fails
+        close(fifo_fd);  /* Close FIFO if signal setup fails */
         exit(EXIT_FAILURE);
     }
 
-	// Read data from a 'gps_fifo' file and send it to the FIFO
-	FILE *data_file = fopen("tmp/gps_fifo", "r");
-	if (data_file == NULL)
+	/* Read data from a 'gps_fifo' file and send it to the FIFO */
+	dfile = fopen("tmp/gps_fifo", "r");
+	if (dfile == NULL)
 	{
 		perror("Error opening data file");
-		close(fifo_fd);  // Close FIFO if file opening fails
+		close(fifo_fd);  /* Close FIFO if file opening fails */
 		exit(EXIT_FAILURE);
 	}
 
-	char buffer[BUFFER_SIZE];
-	// Read GPS data from file and write to FIFO
-	while (fgets(buffer, BUFFER_SIZE, data_file) != NULL && running)
+	/* Read GPS data from file and write to FIFO */
+	while (fgets(buffer, BUFFER_SIZE, dfile) != NULL && running)
 	{
-		sleep(1);  // Optional delay (adjust as needed)
-		ssize_t bytes_written = write(fifo_fd, buffer, strlen(buffer));
-		if (bytes_written == -1)
+		sleep(1);  /* Optional delay (adjust as needed) */
+		bwr = write(fifo_fd, buffer, strlen(buffer));
+		if (bwr == -1)
 		{
 			if (errno == EAGAIN)
 			{
-				// FIFO full, try again later
-				usleep(10000); // Wait for 10 milliseconds
+				/* FIFO full, try again later */
+				usleep(10000); /* Wait for 10 milliseconds */
 				continue;
 			}
 			else
@@ -79,9 +87,9 @@ int main()
 		}
 	}
 
-	// Cleanup
-	fclose(data_file);  // Close the data file
-	close(fifo_fd);     // Close the FIFO
+	/* Cleanup */
+	fclose(dfile);  /* Close the data file */
+	close(fifo_fd);     /* Close the FIFO */
 
 	return 0;
 }

@@ -1,4 +1,5 @@
 /* gcc tcp_client.c -o out_tcp_client */
+/* tcp_client.c */
 
 #include <stdio.h>         /* Standard I/O library */
 #include <stdlib.h>        /* Standard library for general functions */
@@ -17,72 +18,75 @@
 
 int main()
 {
-    int                 fifo_fd;              /* Descriptor for FIFO file */
-    int                 sock;                 /* Descriptor for the socket */
-    struct sockaddr_in  server_addr;          /* Structure to store server address */
-    char                buffer[BUFFER_SIZE];  /* Buffer to hold data */
-    ssize_t             bytes_read;           /* Number of bytes read */
+	int                 fifo_fd;              /* Descriptor for FIFO file */
+	int                 sock;                 /* Descriptor for the socket */
+	struct sockaddr_in  saddr;          /* Structure to store server address */
+	char                buffer[BUFFER_SIZE];  /* Buffer to hold data */
+	ssize_t             brd;           /* Number of bytes read */
 
-    /* Open the FIFO in read-only mode */
-    fifo_fd = open(FIFO_PATH, O_RDONLY);
-    if (fifo_fd == -1)
-    {
-        perror("Error opening FIFO");
-        exit(EXIT_FAILURE);
-    }
 
-    /* Create a TCP socket */
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
+	/* Open the FIFO in read-only mode */
+	fifo_fd = open(FIFO_PATH, O_RDONLY);
+	if (fifo_fd == -1)
+	{
+		perror("Error opening FIFO");
+		exit(EXIT_FAILURE);
+	}
 
-    /* Initialize the server address structure */
-    server_addr.sin_family = AF_INET;                   /* Use IPv4 address family */
-    server_addr.sin_port = htons(SERVER_PORT);          /* Set server port, converting to network byte order */
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP); /* Set server IP address */
+	/* Create a TCP socket */
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("socket");
+		exit(EXIT_FAILURE);
+	}
 
-    /* Connect to the server */
-    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        perror("connect");
-        exit(EXIT_FAILURE);
-    }
+	/* Initialize the server address structure */
+	saddr.sin_family = AF_INET;                   /* Use IPv4 address family */
+	saddr.sin_port = htons(SERVER_PORT);          /* Set server port, converting to network byte order */
+	saddr.sin_addr.s_addr = inet_addr(SERVER_IP); /* Set server IP address */
 
-    /* Read from the FIFO and send data to the server */
-    while (1)
-    {
-        bytes_read = read(fifo_fd, buffer, sizeof(buffer) - 1); /* Leave space for null-terminator */
-        if (bytes_read > 0)
-        {
-            buffer[bytes_read] = '\0';            /* Null-terminate the string */
-            printf("Read from FIFO: %s", buffer); /* Print the read data */
-            fflush(stdout);                       /* Flush the output buffer */
+	/* Connect to the server */
+	if (connect(sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0)
+	{
+		perror("connect");
+		exit(EXIT_FAILURE);
+	}
 
-            /* Send data to the server */
-            if (send(sock, buffer, strlen(buffer), 0) < 0)
-            {
-                perror("send");
-                exit(EXIT_FAILURE);
-            }
-            printf("Sent to server: %s", buffer); /* Print the sent data */
-        }
-        else if (bytes_read == 0)
-        {
-            break;  /* End of data in FIFO */
-        }
-        else if (bytes_read == -1 && errno != EAGAIN)
-        {
-            perror("Error reading from FIFO");
-            exit(EXIT_FAILURE);
-        }
-    }
+	/* Read from the FIFO and send data to the server */
+	while (1)
+	{
+		brd = read(fifo_fd, buffer, sizeof(buffer) - 1); /* Leave space for null-terminator */
+		if (brd > 0)
+		{
+			buffer[brd] = '\0';            /* Null-terminate the string */
+			printf("Read from FIFO: %s", buffer); /* Print the read data */
+			fflush(stdout);                       /* Flush the output buffer */
 
-    /* Close the FIFO and socket */
-    close(fifo_fd);
-    close(sock);
+			/* Send data to the server */
+			if (send(sock, buffer, strlen(buffer), 0) < 0)
+			{
+				perror("send");
+				exit(EXIT_FAILURE);
+			}
 
-    return 0;
+			printf("Sent to server: %s", buffer); /* Print the sent data */
+
+		}
+		else if (brd == 0)
+		{
+			break;  /* End of data in FIFO */
+		}
+		else if (brd == -1 && errno != EAGAIN)
+		{
+			perror("Error reading from FIFO");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	/* Close the FIFO and socket */
+	close(fifo_fd);
+	close(sock);
+
+	return 0;
 }
 
