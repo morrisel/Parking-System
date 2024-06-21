@@ -7,7 +7,7 @@ out_ipc_sender: ipc_sender.c
 	gcc ipc_sender.c -o out_ipc_sender
 
 out_server: server.c
-	gcc server.c -o out_server
+	gcc server.c -o out_server -lpthread
 
 #out_reader: reader.c
 #	gcc reader.c -o out_reader
