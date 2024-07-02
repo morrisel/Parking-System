@@ -151,53 +151,53 @@ int get_ip_address(char *ip_buffer, size_t buffer_size)
  */
 int get_mac_address(char *mac_buffer, size_t buffer_size)
 {
-    char  iface_name[IFNAMSIZ];                 /* Buffer for interface name */
-    char  mac_address[18];                      /* Buffer for temporary MAC storage */
-    int   found = 0;                             /* Flag to indicate if a MAC was found */
+	char  iface_name[IFNAMSIZ];                 /* Buffer for interface name */
+	char  mac_address[18];                      /* Buffer for temporary MAC storage */
+	int   found = 0;                             /* Flag to indicate if a MAC was found */
 
-    /* Iterate through potential interface names */
-    for (int i = 0; i <= MAX_INTERFACE_NUMBER; i++)
-    {
-        /* Attempt to get the MAC address for the current interface */
-        int fd = socket(AF_INET, SOCK_DGRAM, 0);
-        if (fd == -1)
-        {
-            perror("socket");                  /* Check for socket creation error */
-            continue;                          /* Skip to the next interface */
-        }
+	/* Iterate through potential interface names */
+	for (int i = 0; i <= MAX_INTERFACE_NUMBER; i++)
+	{
+		/* Attempt to get the MAC address for the current interface */
+		int fd = socket(AF_INET, SOCK_DGRAM, 0);
+		if (fd == -1)
+		{
+			perror("socket");                  /* Check for socket creation error */
+			continue;                          /* Skip to the next interface */
+		}
 
-        /* Construct interface name */
-        snprintf(iface_name, IFNAMSIZ, "%s%d", INTERFACE_PREFIX, i);
+		/* Construct interface name */
+		snprintf(iface_name, IFNAMSIZ, "%s%d", INTERFACE_PREFIX, i);
 
-        struct ifreq ifr;
-        strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);     /* Copy interface name to ifreq */
+		struct ifreq ifr;
+		strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);     /* Copy interface name to ifreq */
 
-        /* Use ioctl to get the hardware address */
-        if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1)
-        {
-            close(fd);
-            continue;                          /* Skip to the next interface */
-        }
+		/* Use ioctl to get the hardware address */
+		if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1)
+		{
+			close(fd);
+			continue;                          /* Skip to the next interface */
+		}
 
-        unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
-        snprintf(mac_address, sizeof(mac_address), "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+		unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+		snprintf(mac_address, sizeof(mac_address), "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
+				mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-        close(fd);                             /* Close the socket */
+		close(fd);                             /* Close the socket */
 
-        /* If MAC address is obtained successfully, copy it to buffer and exit loop */
-        snprintf(mac_buffer, buffer_size, "%s", mac_address);
-        found = 1;
-        break;
-    }
+		/* If MAC address is obtained successfully, copy it to buffer and exit loop */
+		snprintf(mac_buffer, buffer_size, "%s", mac_address);
+		found = 1;
+		break;
+	}
 
-    if (!found)
-    {
-        fprintf(stderr, "No active interface found with prefix %s\n", INTERFACE_PREFIX);
-        return -1;  /* Return an error if no active interface was found */
-    }
+	if (!found)
+	{
+		fprintf(stderr, "No active interface found with prefix %s\n", INTERFACE_PREFIX);
+		return -1;  /* Return an error if no active interface was found */
+	}
 
-    return 0; /* Return success */
+	return 0; /* Return success */
 }
 
 

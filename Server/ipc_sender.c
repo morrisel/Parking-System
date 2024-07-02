@@ -59,10 +59,10 @@ void signal_handler(int signum)
 
 int main()
 {
-    int      fifo_fd;                     /* Descriptor for FIFO file */
-    char     buffer[BUFFER_SIZE];         /* Buffer to hold data */
-    ssize_t  bwr;                         /* Number of bytes written */
-    FILE     *dfile;                      /* File pointer for the data file */
+	int      fifo_fd;                     /* Descriptor for FIFO file */
+	char     buffer[BUFFER_SIZE];         /* Buffer to hold data */
+	ssize_t  bwr;                         /* Number of bytes written */
+	FILE     *dfile;                      /* File pointer for the data file */
 
 
 	/* Check if FIFO exists, create if not */
@@ -85,12 +85,12 @@ int main()
 	}
 
 	/* Set up signal handler for SIGINT (Ctrl+C) */
-    if (signal(SIGINT, signal_handler) == SIG_ERR)
+	if (signal(SIGINT, signal_handler) == SIG_ERR)
 	{
-        perror("Error setting signal handler");
-        close(fifo_fd);  /* Close FIFO if signal setup fails */
-        exit(EXIT_FAILURE);
-    }
+		perror("Error setting signal handler");
+		close(fifo_fd);  /* Close FIFO if signal setup fails */
+		exit(EXIT_FAILURE);
+	}
 
 	/* Read data from a 'gps_fifo' file and send it to the FIFO */
 	dfile = fopen("tmp/gps_fifo", "r");

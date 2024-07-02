@@ -61,13 +61,13 @@
  */
 void run_in_terminal(const char *program)
 {
-    char command[256];
-    snprintf(command, sizeof(command), "gnome-terminal -- bash -c './%s; exec bash'", program);
-    if (system(command) == -1)
+	char command[256];
+	snprintf(command, sizeof(command), "gnome-terminal -- bash -c './%s; exec bash'", program);
+	if (system(command) == -1)
 	{
-        perror("system");
-        exit(EXIT_FAILURE);
-    }
+		perror("system");
+		exit(EXIT_FAILURE);
+	}
 }
 
 /**
@@ -89,22 +89,22 @@ void run_in_terminal(const char *program)
  */
 int main()
 {
-    printf("Starting out_server...\n");
-    run_in_terminal("out_server");
-    sleep(2);  /* Give time for the server to start */
+	printf("Starting out_server...\n");
+	run_in_terminal("out_server");
+	sleep(2);  /* Give time for the server to start */
 
-    printf("Starting out_listener...\n");
-    run_in_terminal("out_listener");
-    sleep(2);  /* Give time for the listener to start */
+	printf("Starting out_listener...\n");
+	run_in_terminal("out_listener");
+	sleep(2);  /* Give time for the listener to start */
 
-    printf("Starting out_giis...\n");
-    run_in_terminal("out_giis");
+	printf("Starting out_giis...\n");
+	run_in_terminal("out_giis");
 	sleep(2);  /* Give time for giis to start */
 
 	printf("Staring out_insert_data_from_giis_shm...\n");
 	run_in_terminal("out_insert_data_from_giis_shm");
 	sleep(1);  /* Give time for insert_data_from_giis_shm to start */
 
-    return 0;
+	return 0;
 }
 
