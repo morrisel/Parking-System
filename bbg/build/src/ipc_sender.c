@@ -1,5 +1,31 @@
-/* gcc ipc_sender.c -o out_ipc_sender */
-/* ipc_sender.c */
+/**
+ * ipc_sender.c: Sends data from a file to a FIFO (named pipe)
+ *
+ * This program reads GPS data from a specified file and writes it to a
+ * named FIFO (First In, First Out) file. It uses signal handling to
+ * gracefully handle interruptions (e.g., Ctrl+C).
+ *
+ * Compilation:
+ *      gcc ipc_sender.c -o out_ipc_sender
+ *
+ * Usage:
+ *      ./out_ipc_sender
+ *
+ * Features:
+ * - Reads from a GPS data file located at 'tmp/gps_fifo'.
+ * - Writes data to a FIFO defined by FIFO_PATH.
+ * - Handles SIGINT (Ctrl+C) to allow graceful shutdown.
+ *
+ * Version: v1.0
+ * Date:    10-05-2024
+ * Author:  Morris
+ *
+ * Date:            Name:               Version:        Modification:
+ *   10-05-2024       Morris              v1.0            created
+ *
+ */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +42,15 @@
 
 volatile sig_atomic_t running = 1;	/* Flag to control program execution */
 
+
+/**
+ * signal_handler - Handles SIGINT to allow graceful shutdown.
+ *
+ * @signum: The signal number received.
+ *
+ * This function sets the running flag to 0, indicating that the main
+ * loop should terminate.
+ */
 /* Signal handler for graceful shutdown */
 void signal_handler(int signum)
 {
@@ -24,10 +59,10 @@ void signal_handler(int signum)
 
 int main()
 {
-	int      fifo_fd;
-	char     buffer[BUFFER_SIZE];
-	ssize_t  bwr;
-	FILE     *dfile;
+	int      fifo_fd;                     /* Descriptor for FIFO file */
+	char     buffer[BUFFER_SIZE];         /* Buffer to hold data */
+	ssize_t  bwr;                         /* Number of bytes written */
+	FILE     *dfile;                      /* File pointer for the data file */
 
 
 	/* Check if FIFO exists, create if not */
@@ -50,12 +85,12 @@ int main()
 	}
 
 	/* Set up signal handler for SIGINT (Ctrl+C) */
-    if (signal(SIGINT, signal_handler) == SIG_ERR)
+	if (signal(SIGINT, signal_handler) == SIG_ERR)
 	{
-        perror("Error setting signal handler");
-        close(fifo_fd);  /* Close FIFO if signal setup fails */
-        exit(EXIT_FAILURE);
-    }
+		perror("Error setting signal handler");
+		close(fifo_fd);  /* Close FIFO if signal setup fails */
+		exit(EXIT_FAILURE);
+	}
 
 	/* Read data from a 'gps_fifo' file and send it to the FIFO */
 	dfile = fopen("tmp/gps_fifo", "r");
