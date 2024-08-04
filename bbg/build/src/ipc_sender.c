@@ -37,7 +37,7 @@
 #include <signal.h>
 
 #define FIFO_PATH "tmp/gps_pipe"	                                 /* Path to the named pipe (FIFO) */
-#define BUFFER_SIZE 256				                                 /* Buffer size for reading/writing data */
+#define BUFFER_SIZE 256                                              /* Buffer size for reading/writing data */
 
 volatile sig_atomic_t running = 1;	                                 /* Flag to control program execution */
 
