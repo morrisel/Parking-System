@@ -53,7 +53,7 @@ volatile sig_atomic_t running = 1;                                   /* Flag to 
 /* Signal handler for graceful shutdown */
 void signal_handler(int signum)
 {
-    running = 0;	                                                 /* Set flag to stop the main loop */
+    running = 0;                                                     /* Set flag to stop the main loop */
 }
 
 int main()
