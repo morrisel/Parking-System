@@ -25,10 +25,7 @@
  * Date:            Name:               Version:        Modification:
  *   26-03-2024       Morris              v1.0            created
  *
- *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +33,9 @@
 #include <unistd.h>
 
 /* <A1: Include headers for network interface functions (headers for getting IP and MAC addresses) */
-#include <sys/ioctl.h>	                       /*  ioctl  */
-#include <sys/socket.h>                        /*  SIOCGIFADDR  */
-#include <net/if.h>                            /*  struct ifreq,  IFNAMSIZ  */
+#include <sys/ioctl.h>	                                             /* ioctl */
+#include <sys/socket.h>                                              /* SIOCGIFADDR */
+#include <net/if.h>                                                  /* struct ifreq, IFNAMSIZ */
 /* A1:> */
 
 #include <sys/types.h>
@@ -47,14 +44,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#define FIFO_PATH   "tmp/gps_pipe"             /* Path to the FIFO file */
-#define SERVER_PORT 12345                      /* Server port number */
-#define BUFFER_SIZE 1024                       /* Buffer size for reading and writing data */
-/* #define SERVER_IP   "192.168.15.188" */          /* Server IP address */
-#define SERVER_IP   "192.168.7.1"            /* Adjust based on BBG interfaces */
+#define FIFO_PATH   "tmp/gps_pipe"                                   /* Path to the FIFO file */
+#define SERVER_PORT 12345                                            /* Server port number */
+#define BUFFER_SIZE 1024                                             /* Buffer size for reading and writing data */
+/* #define SERVER_IP   "192.168.15.188" */                           /* Server IP address */
+#define SERVER_IP   "192.168.7.1"                                    /* Adjust based on BBG interfaces */
 
-/* #define INTERFACE_PREFIX "ens" */                 /* Network interface based on VM */
-#define INTERFACE_PREFIX "usb"               /* Adjust based on BBG interfaces */
+/* #define INTERFACE_PREFIX "ens" */                                 /* Network interface based on VM */
+#define INTERFACE_PREFIX "usb"                                       /* Adjust based on BBG interfaces */
 #define MAX_INTERFACE_NUMBER 40
 
 
@@ -78,9 +75,9 @@
  */
 int get_ip_address(char *ip_buffer, size_t buffer_size)
 {
-	char  iface_name[IFNAMSIZ];                 /* Buffer for interface name */
-	char  ip_address[INET_ADDRSTRLEN];          /* Buffer for temporary IP storage */
-	int   found = 0;                            /* Flag to indicate if an IP was found */
+	char  iface_name[IFNAMSIZ];                                      /* Buffer for interface name */
+	char  ip_address[INET_ADDRSTRLEN];                               /* Buffer for temporary IP storage */
+	int   found = 0;                                                 /* Flag to indicate if an IP was found */
 
 	/* Iterate through potential interface names */
 	for (int i = 0; i <= MAX_INTERFACE_NUMBER; i++)
@@ -89,30 +86,28 @@ int get_ip_address(char *ip_buffer, size_t buffer_size)
 		int fd = socket(AF_INET, SOCK_DGRAM, 0);
 		if (fd == -1)
 		{
-			perror("socket");                  /* Check for socket creation error */
-			continue;                          /* Skip to the next interface */
+			perror("socket");                                        /* Check for socket creation error */
+			continue;                                                /* Skip to the next interface */
 		}
 
 		/* Construct interface name */
 		snprintf(iface_name, IFNAMSIZ, "%s%d", INTERFACE_PREFIX, i);
 
 		struct ifreq ifr;
-		memset(&ifr, 0, sizeof(struct ifreq));             /* Zero out the ifreq structure */
-		strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);     /* Copy interface name to ifreq */
+		memset(&ifr, 0, sizeof(struct ifreq));                       /* Zero out the ifreq structure */
+		strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);               /* Copy interface name to ifreq */
 
 		/* Use ioctl to get the interface address */
 		if (ioctl(fd, SIOCGIFADDR, &ifr) == -1)
 		{
 			close(fd);
-			continue;                          /* Skip to the next interface */
+			continue;                                                /* Skip to the next interface */
 		}
 
 		struct sockaddr_in  *sa  = (struct sockaddr_in *)&ifr.ifr_addr;
 		const char          *ip  = inet_ntoa(sa->sin_addr);          /* Convert to dotted-decimal notation */
-
-		strncpy(ip_address, ip, sizeof(ip_address));       /* Store IP temporarily */
-
-		close(fd);                             /* Close the socket */
+		strncpy(ip_address, ip, sizeof(ip_address));                 /* Store IP temporarily */
+		close(fd);                                                   /* Close the socket */
 
 		/* If IP address is obtained successfully, copy it to buffer and exit loop */
 		strncpy(ip_buffer, ip_address, buffer_size);
@@ -126,7 +121,7 @@ int get_ip_address(char *ip_buffer, size_t buffer_size)
 		return -1;  /* Return an error if no active interface was found */
 	}
 
-	return 0; /* Return success */
+	return 0;
 }
 
 
@@ -151,9 +146,9 @@ int get_ip_address(char *ip_buffer, size_t buffer_size)
  */
 int get_mac_address(char *mac_buffer, size_t buffer_size)
 {
-	char  iface_name[IFNAMSIZ];                 /* Buffer for interface name */
-	char  mac_address[18];                      /* Buffer for temporary MAC storage */
-	int   found = 0;                             /* Flag to indicate if a MAC was found */
+	char  iface_name[IFNAMSIZ];                                      /* Buffer for interface name */
+	char  mac_address[18];                                           /* Buffer for temporary MAC storage */
+	int   found = 0;                                                 /* Flag to indicate if a MAC was found */
 
 	/* Iterate through potential interface names */
 	for (int i = 0; i <= MAX_INTERFACE_NUMBER; i++)
@@ -162,28 +157,28 @@ int get_mac_address(char *mac_buffer, size_t buffer_size)
 		int fd = socket(AF_INET, SOCK_DGRAM, 0);
 		if (fd == -1)
 		{
-			perror("socket");                  /* Check for socket creation error */
-			continue;                          /* Skip to the next interface */
+			perror("socket");                                        /* Check for socket creation error */
+			continue;                                                /* Skip to the next interface */
 		}
 
 		/* Construct interface name */
 		snprintf(iface_name, IFNAMSIZ, "%s%d", INTERFACE_PREFIX, i);
 
 		struct ifreq ifr;
-		strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);     /* Copy interface name to ifreq */
+		strncpy(ifr.ifr_name, iface_name, IFNAMSIZ-1);               /* Copy interface name to ifreq */
 
 		/* Use ioctl to get the hardware address */
 		if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1)
 		{
 			close(fd);
-			continue;                          /* Skip to the next interface */
+			continue;                                                /* Skip to the next interface */
 		}
 
 		unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
 		snprintf(mac_address, sizeof(mac_address), "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
 				mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-		close(fd);                             /* Close the socket */
+		close(fd);
 
 		/* If MAC address is obtained successfully, copy it to buffer and exit loop */
 		snprintf(mac_buffer, buffer_size, "%s", mac_address);
@@ -197,24 +192,25 @@ int get_mac_address(char *mac_buffer, size_t buffer_size)
 		return -1;  /* Return an error if no active interface was found */
 	}
 
-	return 0; /* Return success */
+	return 0;
 }
 
 
 int main()
 {
-	int                 fifo_fd;                    /* Descriptor for FIFO file */
-	int                 sock;                       /* Descriptor for the socket */
-	struct sockaddr_in  saddr;                      /* Structure to store server address */
-	char                buffer[BUFFER_SIZE];        /* Buffer to hold data */
-	ssize_t             brd;                        /* Number of bytes read */
-	/* char server_ip[INET_ADDRSTRLEN]; */  /* Buffer to hold the server IP address */
+	int                 fifo_fd;                                     /* Descriptor for FIFO file */
+	int                 sock;                                        /* Descriptor for the socket */
+	struct sockaddr_in  saddr;                                       /* Structure to store server address */
+	char                buffer[BUFFER_SIZE];                         /* Buffer to hold data */
+	ssize_t             brd;                                         /* Number of bytes read */
+	/* char server_ip[INET_ADDRSTRLEN]; */                           /* Buffer to hold the server IP address */
 
 	/* Get the client IP address at runtime */
-	char ip_address[INET_ADDRSTRLEN];       /* Buffer to store the IP address in xxx.xxx.xxx.xxx format */  
+	char ip_address[INET_ADDRSTRLEN];                                /* Buffer to store the IP address
+                                                                        in xxx.xxx.xxx.xxx format */  
 	if (get_ip_address(ip_address, sizeof(ip_address)) == 0)
 	{
-		/* Вывод IP-адреса на консоль */
+		/* Print IP-address to console */
 		printf("IP Address: %s\n", ip_address);
 	}
 
@@ -242,8 +238,9 @@ int main()
 	}
 
 	/* Initialize the server address structure */
-	saddr.sin_family = AF_INET;                   /* Use IPv4 address family */
-	saddr.sin_port = htons(SERVER_PORT);          /* Set server port, converting to network byte order */
+	saddr.sin_family = AF_INET;                                         /* Use IPv4 address family */
+	saddr.sin_port = htons(SERVER_PORT);                                /* Set server port, converting to
+                                                                           network byte order */
 
 	/* Convert the server's IP address from text to binary form and store it in saddr.sin_addr */
 	if (inet_pton(AF_INET, SERVER_IP, &saddr.sin_addr) <= 0)
@@ -262,15 +259,15 @@ int main()
 	/* Read from the FIFO and send data to the server */
 	while (1)
 	{
-		brd = read(fifo_fd, buffer, sizeof(buffer) - 1); /* Leave space for null-terminator */
+		brd = read(fifo_fd, buffer, sizeof(buffer) - 1);             /* Leave space for null-terminator */
 		if (brd > 0)
 		{
-			buffer[brd] = '\0';            /* Null-terminate the string */
-			printf("Read from FIFO: %s", buffer); /* Print the read data */
-			fflush(stdout);                       /* Flush the output buffer */
+			buffer[brd] = '\0';                                      /* Null-terminate the string */
+			printf("Read from FIFO: %s", buffer);                    /* Print the read data */
+			fflush(stdout);                                          /* Flush the output buffer */
 
 			/* Create a new buffer to hold MAC address and the data */
-			char combined_buffer[BUFFER_SIZE + 20]; /* Additional space for MAC address */
+			char combined_buffer[BUFFER_SIZE + 20];                  /* Additional space for MAC address */
 			snprintf(combined_buffer, sizeof(combined_buffer), "%s: %s", mac_address, buffer);
 
 			/* Send data to the server */
@@ -280,11 +277,11 @@ int main()
 				exit(EXIT_FAILURE);
 			}
 
-			printf("Sent to server: %s", buffer); /* Print the sent data */
+			printf("Sent to server: %s", buffer);                    /* Print the sent data */
 		}
 		else if (brd == 0)
 		{
-			break;  /* End of data in FIFO */
+			break;                                                   /* End of data in FIFO */
 		}
 		else if (brd == -1 && errno != EAGAIN)
 		{
