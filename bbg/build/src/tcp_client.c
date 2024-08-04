@@ -237,9 +237,9 @@ int main()
     }
 
     /* Initialize the server address structure */
-    saddr.sin_family = AF_INET;                                         /* Use IPv4 address family */
-    saddr.sin_port = htons(SERVER_PORT);                                /* Set server port, converting to
-                                                                           network byte order */
+    saddr.sin_family = AF_INET;                                      /* Use IPv4 address family */
+    saddr.sin_port   = htons(SERVER_PORT);                           /* Set server port, converting to
+                                                                        network byte order */
 
     /* Convert the server's IP address from text to binary form and store it in saddr.sin_addr */
     if (inet_pton(AF_INET, SERVER_IP, &saddr.sin_addr) <= 0)
