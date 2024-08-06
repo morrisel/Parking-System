@@ -27,7 +27,6 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,18 +38,18 @@
 #include <string.h>
 #include <signal.h>
 
-#define SHM_KEY 0x1234                             /* Key for shared memory segment */
-#define BUFFER_SIZE 1024                           /* Buffer size for data */
-#define FIFO_NAME "giis/ipc_transfer_giis"         /* Path to the FIFO file */
-/*#define FIFO_TO_DB "giis/ipc_to_db" */           /* (Optional) Path to another FIFO file */
+#define SHM_KEY                0x1234                                /* Key for shared memory segment */
+#define BUFFER_SIZE            1024                                  /* Buffer size for data */
+#define FIFO_NAME              "giis/ipc_transfer_giis"              /* Path to the FIFO file */
+/*#define FIFO_TO_DB           "giis/ipc_to_db" */                   /* (Optional) Path to another FIFO file */
 
 /* Shared memory structure */
 struct shared_data
 {
-	char data[BUFFER_SIZE];                      /* Data buffer */
+    char data[BUFFER_SIZE];                                          /* Data buffer */
 };
 
-volatile sig_atomic_t running = 1;		      /* Flag for running status */
+volatile sig_atomic_t running = 1;                                   /* Flag for running status */
 
 /**
  * signal_handler - Signal handler to set the running flag to 0.
@@ -59,68 +58,68 @@ volatile sig_atomic_t running = 1;		      /* Flag for running status */
  */
 void signal_handler(int signum)
 {
-	running = 0;
+    running = 0;
 }
 
 int main()
 {
-	/* Get shared memory ID */
-	int shm_id = shmget(SHM_KEY, sizeof(struct shared_data), 0666);
-	if (shm_id == -1)
-	{
-		perror("shmget");
-		exit(EXIT_FAILURE);
-	}
+    /* Get shared memory ID */
+    int shm_id = shmget(SHM_KEY, sizeof(struct shared_data), 0666);
+    if (shm_id == -1)
+    {
+        perror("shmget");
+        exit(EXIT_FAILURE);
+    }
 
-	/* Attach shared memory segment */
-	struct shared_data *shm_data = (struct shared_data *)shmat(shm_id, NULL, 0);
-	if (shm_data == (void *)-1)
-	{
-		perror("shmat");
-		exit(EXIT_FAILURE);
-	}
+    /* Attach shared memory segment */
+    struct shared_data *shm_data = (struct shared_data *)shmat(shm_id, NULL, 0);
+    if (shm_data == (void *)-1)
+    {
+        perror("shmat");
+        exit(EXIT_FAILURE);
+    }
 
-	/* Check if FIFO exists */
-	if (access(FIFO_NAME, F_OK) == -1)
-	{
-		/* Create FIFO if it doesn't exist */
-		if (mkfifo(FIFO_NAME, 0666) == -1)
-		{
-			perror("mkfifo");
-			exit(EXIT_FAILURE);
-		}
-	}
+    /* Check if FIFO exists */
+    if (access(FIFO_NAME, F_OK) == -1)
+    {
+        /* Create FIFO if it doesn't exist */
+        if (mkfifo(FIFO_NAME, 0666) == -1)
+        {
+            perror("mkfifo");
+            exit(EXIT_FAILURE);
+        }
+    }
 
-	/* Set up signal handler for SIGINT */
-	signal(SIGINT, signal_handler);
+    /* Set up signal handler for SIGINT */
+    signal(SIGINT, signal_handler);
 
-	char last_data[BUFFER_SIZE] = "";          /* Buffer to store last read data */
-	while (running)
-	{
-		sleep(10);                             /* Sleep for 10 seconds */
+    char last_data[BUFFER_SIZE] = "";                                /* Buffer to store last read data */
+    while (running)
+    {
+        sleep(10);                                                   /* Sleep for 10 seconds */
 
-		/* Check if data has changed */
-		if (strcmp(last_data, shm_data->data) != 0)
-		{
-			strcpy(last_data, shm_data->data);  /* Update last data */
+        /* Check if data has changed */
+        if (strcmp(last_data, shm_data->data) != 0)
+        {
+            strcpy(last_data, shm_data->data);                       /* Update last data */
 
-			/* Write notification to FIFO */
-			int fd = open(FIFO_NAME, O_WRONLY);
-			if (fd == -1)
-			{
-				perror("open");
-				exit(EXIT_FAILURE);
-			}
-			write(fd, "data received\n", 15);     /* Write notification */
-			close(fd);
-		}
-	}
+            /* Write notification to FIFO */
+            int fd = open(FIFO_NAME, O_WRONLY);
+            if (fd == -1)
+            {
+                perror("open");
+                exit(EXIT_FAILURE);
+            }
+            write(fd, "data received\n", 15);                        /* Write notification */
+            close(fd);
+        }
+    }
 
-	/* Detach shared memory segment */
-	shmdt(shm_data);
-	unlink(FIFO_NAME);			/* Remove the FIFO file */
+    /* Detach shared memory segment */
+    shmdt(shm_data);
+    unlink(FIFO_NAME);                                               /* Remove the FIFO file */
 
-	puts("");
-	return 0;
+    puts("");
+    return 0;
 }
 

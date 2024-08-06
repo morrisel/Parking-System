@@ -23,8 +23,8 @@
  * Version: v1.0
  * Date:    24-03-2024
  * Author:  Morris
- *                  				 
- * Date:            Name:               Version:		Modification:
+ *                       
+ * Date:            Name:               Version:        Modification:
  *   24-03-2024       Morris              v1.0            created
  *   03-06-2024       Moriis              v1.1            updated
  *                                                          - Added multithreading support
@@ -33,7 +33,6 @@
  *                                                          - Added signal handling for graceful shutdown
  * 
  */
-
 
 
 #include <stdio.h>
@@ -47,24 +46,24 @@
 #include <semaphore.h>
 #include <signal.h>
 
-#define SERVER_PORT 12345                       /* Server port number */
-#define BUFFER_SIZE 1024                        /* Buffer size for reading and writing data */
-#define SHM_KEY 0x1234                          /* Key for shared memory */
-#define MAX_CLIENTS 10                          /* Maximum number of concurrent clients */
-#define VERSION "1.1"                           /* Server version */
+#define SERVER_PORT            12345                                 /* Server port number */
+#define BUFFER_SIZE            1024                                  /* Buffer size for reading and writing data */
+#define SHM_KEY                0x1234                                /* Key for shared memory */
+#define MAX_CLIENTS            10                                    /* Maximum number of concurrent clients */
+#define VERSION                "1.1"                                 /* Server version */
 
 
 /* Shared memory structure */
 struct shared_data
 {
-    char data[BUFFER_SIZE];				 		/* Buffer to hold shared data */
+    char data[BUFFER_SIZE];                                          /* Buffer to hold shared data */
 };
 
 /* Thread argument structure */
 struct thread_arg
 {
-    int csck;									/* Client socket descriptor */
-    struct sockaddr_in caddr;					/* Client address structure */
+    int                csck;                                         /* Client socket descriptor */
+    struct sockaddr_in caddr;                                        /* Client address structure */
 };
 
 /* Mutex for shared memory synchronization */
@@ -79,7 +78,7 @@ volatile sig_atomic_t running = 1;
 /* Signal handler for graceful shutdown */
 void signal_handler(int signum)
 {
-    running = 0;  /* Set flag to stop the main loop */
+    running = 0;                                                     /* Set flag to stop the main loop */
     printf("Received signal %d, shutting down...\n", signum);
 }
 
@@ -101,17 +100,15 @@ void *handle_client(void *arg)
     struct thread_arg   *targ   = (struct thread_arg *)arg;
     int                 csck    = targ->csck;
     struct sockaddr_in  caddr   = targ->caddr;
-
     char                buffer[BUFFER_SIZE + 1];
-
-	int                 tbrecv;         /* Total bytes received from client */
-    int 				brecv;
-    char 				*line;			/* Split the buffer into lines */
+    int                 tbrecv;                                      /* Total bytes received from client */
+    int                 brecv;
+    char                *line;                                       /* Split the buffer into lines */
 
     /* Attach shared memory */
     int shm_id = shmget(SHM_KEY, sizeof(struct shared_data), 0666);
     if (shm_id == -1)
-	{
+    {
         perror("shmget");
         close(csck);
         free(arg);
@@ -119,7 +116,7 @@ void *handle_client(void *arg)
     }
     struct shared_data *shm_data = (struct shared_data *)shmat(shm_id, NULL, 0);
     if (shm_data == (void *)-1)
-	{
+    {
         perror("shmat");
         close(csck);
         free(arg);
@@ -128,13 +125,13 @@ void *handle_client(void *arg)
 
     /* Read data from the client and print it to the terminal */
     while ((brecv = recv(csck, buffer, BUFFER_SIZE, 0)) > 0)
-	{
-		tbrecv         =  0;
-        buffer[brecv]  =  '\0';       /* Null-terminate the string */
-        line           =  strtok(buffer, "\n");       /* Tokenize within the recv loop */
+    {
+        tbrecv         =  0;
+        buffer[brecv]  =  '\0';                                      /* Null-terminate the string */
+        line           =  strtok(buffer, "\n");                      /* Tokenize within the recv loop */
 
         while (line != NULL)
-		{
+        {
             printf("Received from %s: %s\n", inet_ntoa(caddr.sin_addr), line);  /* Print each line */
 
             /* Lock mutex */
@@ -146,17 +143,17 @@ void *handle_client(void *arg)
             /* Unlock mutex */
             pthread_mutex_unlock(&shm_mutex);
 
-            line = strtok(NULL, "\n");       /* Move to the next line */
+            line = strtok(NULL, "\n");                               /* Move to the next line */
         }
 
-		tbrecv += brecv;
+        tbrecv += brecv;
     }
 
-	/* Print a message indicating the end of data reception from the client */
-	if (tbrecv > 0)
-	{
-		printf("Complete message received from client.\n");
-	}
+    /* Print a message indicating the end of data reception from the client */
+    if (tbrecv > 0)
+    {
+        printf("Complete message received from client.\n");
+    }
 
     /* Detach shared memory */
     shmdt(shm_data);
@@ -182,14 +179,14 @@ int main()
 
     /* Set up signal handler for SIGINT (Ctrl+C) */
     if (signal(SIGINT, signal_handler) == SIG_ERR)
-	{
+    {
         perror("Error setting signal handler");
         exit(EXIT_FAILURE);
     }
 
     /* Create a socket */
     if ((ssck = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
+    {
         perror("socket");
         exit(EXIT_FAILURE);
     }
@@ -200,14 +197,14 @@ int main()
 
     /* Bind the socket to the port */
     if (bind(ssck, (struct sockaddr *)&saddr, sizeof(saddr)) < 0)
-	{
+    {
         perror("bind");
         exit(EXIT_FAILURE);
     }
 
     /* Listen for incoming connections */
     if (listen(ssck, 5) < 0)
-	{
+    {
         perror("listen");
         exit(EXIT_FAILURE);
     }
@@ -217,25 +214,25 @@ int main()
     /* Initialize shared memory */
     int shm_id = shmget(SHM_KEY, sizeof(struct shared_data), IPC_CREAT | 0666);
     if (shm_id == -1)
-	{
+    {
         perror("shmget");
         exit(EXIT_FAILURE);
     }
 
     /* Initialize the semaphore */
     if (sem_init(&client_sem, 0, MAX_CLIENTS) == -1)
-	{
+    {
         perror("sem_init");
         exit(EXIT_FAILURE);
     }
 
-	/* Main loop to accept and handle client connections */
+    /* Main loop to accept and handle client connections */
     while (running)
-	{
-		/* Allocate memory for thread argument */
+    {
+        /* Allocate memory for thread argument */
         struct thread_arg *targ = malloc(sizeof(struct thread_arg));
         if (!targ)
-		{
+        {
             perror("malloc");
             exit(EXIT_FAILURE);
         }
@@ -247,7 +244,7 @@ int main()
         socklen_t caddrlen  =  sizeof(targ->caddr);
         targ->csck          =  accept(ssck, (struct sockaddr *)&targ->caddr, &caddrlen);
         if (targ->csck < 0)
-		{
+        {
             perror("accept");
             free(targ);
             /* Signal the semaphore since this client failed to connect */
@@ -257,7 +254,7 @@ int main()
 
         /* Create a thread to handle the client */
         if (pthread_create(&thread_id, NULL, handle_client, (void *)targ) != 0)
-		{
+        {
             perror("pthread_create");
             close(targ->csck);
             free(targ);
@@ -269,9 +266,9 @@ int main()
         pthread_detach(thread_id);
     }
 
-	/* Cleanup: close the server socket */
+    /* Cleanup: close the server socket */
     close(ssck);
-	/* Cleanup: destroy the semaphore */
+    /* Cleanup: destroy the semaphore */
     sem_destroy(&client_sem);
 
     return 0;
