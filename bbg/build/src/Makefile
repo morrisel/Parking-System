@@ -9,7 +9,7 @@ IPC_SENDER = out_ipc_sender
 TCP_CLIENT = out_tcp_client
 
 # Default Goals
-all:	$(IPC_SENDER) $(TCP_CLIENT) main
+all:	$(IPC_SENDER) $(TCP_CLIENT) sys_com_controller
 
 
 # Rules for creating executables
@@ -20,8 +20,8 @@ $(IPC_SENDER): ipc_sender.o
 $(TCP_CLIENT): tcp_client.o
 	$(CC) $(CFLAGS) -o $(TCP_CLIENT) tcp_client.o
 
-main: main.o gpio.o uart.o data_formatter.o
-	$(CC) $(CFLAGS) -o main main.o gpio.o uart.o data_formatter.o
+sys_com_controller: sys_com_controller.o gpio.o uart.o data_formatter.o
+	$(CC) $(CFLAGS) -o sys_com_controller sys_com_controller.o gpio.o uart.o data_formatter.o
 
 
 # Rules for compilations
@@ -35,8 +35,8 @@ ipc_sender.o: ipc_sender.c
 tcp_client.o: tcp_client.c
 	$(CC) $(CFLAGS) -c tcp_client.c
 
-main.o: main.c gpio/gpio.h uart/uart.h data_formatter.h
-	$(CC) $(CFLAGS) -c main.c
+sys_com_controller.o: sys_com_controller.c gpio/gpio.h uart/uart.h data_formatter.h
+	$(CC) $(CFLAGS) -c sys_com_controller.c
 
 gpio.o: gpio/gpio.c gpio/gpio.h
 	$(CC) $(CFLAGS) -c gpio/gpio.c
@@ -48,5 +48,4 @@ uart.o: uart/uart.c uart/uart.h
 
 # Clearing intermediate files and ext_data_ws
 clean:
-	rm -f *.o $(IPC_SENDER) $(TCP_CLIENT) main
-
+	rm -f *.o $(IPC_SENDER) $(TCP_CLIENT) sys_com_controller

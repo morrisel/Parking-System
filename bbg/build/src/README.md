@@ -1,93 +1,80 @@
-# Parking System Technical Documentation
+# BeagleBone Green (BBG) Technical Documentation for Parking System
 
 ## Introduction
-The Parking System is designed to monitor and manage parking spaces in real-time. It utilizes a client-server architecture where parking sensors (clients) communicate with a central server for data processing and storage. The system leverages multithreading, parallel processing, and inter-process communication (IPC) mechanisms to achieve efficient and reliable operation in a Linux environment.
+This document provides detailed information about the components running on the BeagleBone Green (BBG) as part of the Parking System project. The BBG serves as an intermediary device that collects data from parking sensors and forwards it to the central server. The software components on the BBG handle data formatting, inter-process communication (IPC), and data transmission to the server.
 
 ## Components and Functionality
-### Server Side (Linux)
-1.  **out_server:**
-    - Core server program that listens for TCP connections from clients (parking sensors).
-    - Receives data from clients, writes it to shared memory, and handles concurrent client connections.
-    - Uses a semaphore to limit the number of simultaneous clients.
-2.  **out_listener:**
-    - Monitors changes in shared memory.
-    - When data changes, it sends a notification through a FIFO (named pipe) to `out_giis`.
-3.  **out_giis:**
-    - Reads data from shared memory when notified by `out_listener`.
-    - Appends the data to a file (`giis/gdfs.data`) and a FIFO (`giis/ipc_to_db`).
-4.  **out_insert_data_from_giis_shm:**
-    - Reads data from both `giis/gdfs.data` and the FIFO `giis/ipc_to_db`.
-    - Parses the data (MAC address, status, coordinates) and inserts it into an SQLite database (`prksys_db.db`).
-5.  **out_update_prices:**
-    - Updates parking prices in the database based on a price file (`prices.txt`).
-    - Adds new prices, modifies existing ones, and removes prices that are not present in the file.
 
-### Client Side
-1.  **out_tcp_client:**
-    - Reads parking sensor data from a FIFO (`tmp/gps_pipe`).
-    - Sends the data (combined with the client's MAC address) to the out_server over TCP.
-2.  **out_ipc_sender:**
-    - Reads data from another file (`tmp/gps_fifo`) and sends it to the FIFO (`tmp/gps_pipe`), which is then consumed by `out_tcp_client`.
+### 1. **data_formatter.c**
+   - **Description:** This module is responsible for processing and formatting lines of received data into a readable and structured format. It prepares the data before it is sent to the server or written to a file.
+   - **Functionality:** 
+     - Reads raw data from input sources.
+     - Formats the data into a predefined structure.
+     - Outputs the formatted data to a file or FIFO for further processing.
 
-### Data Flow
-1.  **Data Acquisition:**
-    - Parking sensor data is sent to `tmp/gps_fifo`.
-    - `out_ipc_sender` reads this data and writes it to `tmp/gps_pipe`.
-    - `out_tcp_client` reads from `tmp/gps_pipe`, adds the client's MAC address, and sends the combined data to `out_server`.
-2.  **Data Processing and Storage:**
-    - `out_server` receives the data, writes it to shared memory, and prints it to the console.
-    - `out_listener` detects the change in shared memory and notifies `out_giis`.
-    - `out_giis` reads the data from shared memory, writes it to `giis/gdfs.data` and the FIFO `giis/ipc_to_db`.
-    - `out_insert_data_from_giis_shm` reads the data from both the file and FIFO and inserts it into the SQLite database.
+### 2. **ipc_sender.c**
+   - **Description:** This program reads GPS data from a file and sends it to a FIFO (named pipe). It facilitates the transfer of sensor data to other processes on the BBG or the central server.
+   - **Functionality:**
+     - Reads data from `ext_data.txt`.
+     - Sends data to a FIFO defined by `FIFO_PATH`.
+     - Handles interruptions gracefully, ensuring data consistency.
 
-##### Compilation and Execution
-###### Compilation
-The project is compiled using the provided Makefile. Running `make all` from the project directory will compile all source files and generate the corresponding executables.
+### 3. **sys_com_controller.c**
+   - **Description:** The `sys_com_controller` module is the entry point for the BBG client application. It initializes communication with the STM32 Nucleo-F746ZG board via the GPIO interface. This program will receive data from the board, process it using the `data_formatter.c` module, and save the processed data to the `ext_data.txt` file.
+   - **Functionality:**
+     - Reads data from UART1.
+     - Processes and validates the received messages.
+     - Sends acknowledgment responses back via UART.
+
+### 4. **tcp_client.c**
+   - **Description:** This client program reads data from a FIFO and sends it to a TCP server. It is the final stage in the data transmission pipeline on the BBG.
+   - **Functionality:**
+     - Reads data from a FIFO (`tmp/gps_pipe`).
+     - Connects to a TCP server using specified IP and port.
+     - Sends the data, prefixed with the client’s MAC address, to the server.
+
+## Inter-Process Communication (IPC)
+The BBG utilizes various IPC mechanisms to facilitate communication between different processes:
+- **FIFO (Named Pipes):**
+  - `tmp/gps_pipe`: Used to transfer data from `ipc_sender` to `tcp_client`.
+
+The FIFOs ensure that data is sequentially processed and forwarded to the appropriate modules or the central server.
+
+## Compilation and Build
+
+### Makefile
+The Makefile provided in the project directory is used to compile all the source files. Below are the commands to use:
+
+#### Compilation
+To compile the programs, navigate to the project directory and run:
 ```sh
 make all
 ```
-To clean up compiled executables, run:
+
+#### Cleaning Up
+To remove all compiled executables, run:
 ```sh
 make clean
 ```
-###### Execution
-There is a dedicated script to run the system: `out_prk_sys_srv_run`. This program is responsible for executing the server-side programs as background processes and monitoring them. To start the system, execute:
+
+## Execution and Usage
+### Starting the BBG Client Programs
+
+#### 1. Start tcp_client:
+Start the `out_tcp_client` program to read from `tmp/gps_pipe` and send the data to the central server via TCP.
 ```sh
-./out_prk_sys_srv_run
+./out_tcp_client
 ```
-#
-##### Configuration
-*  **Configuration Files:**
-   * Ensure that the FIFO files (`gps_pipe and ipc_to_db`) are created before running the programs.
-   * Modify `prices.txt` to update parking prices.
-*  **Adjustable Parameters:**
-   * The number of simultaneous client connections can be adjusted by modifying the semaphore initialization in out_server.
 
-##### Usage
-*  **Starting the System:**
-   * Execute `./out_prk_sys_srv_run` to start the server-side programs.
-*  **Stopping the System:**
-   * Terminate the background processes using the appropriate kill commands.
-*  **Monitoring and Troubleshooting:**
-   * Monitor the console output for logs and errors.
-   * Check the contents of `giis/gdfs.data` and the database (`prksys_db.db`) for stored data.
+#### 2. Start sys_com_controller:
+Run the `sys_com_controller` to initiate communication and receive data from the board, and save the processed data to the `ext_data.txt` file.
+```sh
+./sys_com_controller
+```
 
-##### Multithreading and Parallelism
-The Parking System utilizes multithreading and parallel processing extensively:
-*  **Server-Side Multithreading:** `out_server` employs multithreading to handle multiple client connections concurrently. Each client is managed by a separate thread, allowing the server to process data from multiple sensors simultaneously.
-*  **Parallel Data Processing:** `out_giis` and `out_insert_data_from_giis_shm` work in parallel to process incoming parking data. This ensures efficient data processing and minimal latency.
-* **Client-Side Concurrency:** `out_ipc_sender` and `out_tcp_client` operate concurrently to ensure a smooth flow of data from sensors to the server.
-
-##### Inter-Process Communication (IPC)
-The Parking System employs various IPC mechanisms:
-*  **Shared Memory:** Used for communication between `out_server, out_listener`, and `out_giis`. The server writes incoming data to shared memory, which is monitored by `out_listener`.
-*  **FIFOs (Named Pipes):**
-   * `tmp/gps_pipe`: Transfers data from `out_ipc_sender` to `out_tcp_client`.
-   * `giis/ipc_to_db`: Transfers data from `out_giis` to `out_insert_data_from_giis_shm`.
-*  **TCP Sockets:** Used for reliable, bidirectional communication between the parking sensors (clients) and the central server (`out_server`).
-
-##### Conclusion
-The Parking System is a well-designed solution that leverages multithreading, parallel processing, and IPC mechanisms to efficiently manage parking spaces. Its modular architecture and use of standard technologies make it adaptable and scalable. The system's focus on real-time data processing and storage ensures that parking information is readily available for analysis and decision-making.
-
-
+#### 3. Start ipc_sender:
+Run the `out_ipc_sender` program to begin reading GPS data from the `ext_data.txt` file and sending it to `tmp/gps_pipe`.
+```sh
+./out_ipc_sender
+```
 

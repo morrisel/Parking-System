@@ -1,12 +1,12 @@
 /**
- * main.c
+ * sys_com_controller.c
  *
- * This module is the main entry point of the application. It is responsible for 
- * initializing GPIO and UART, reading data from UART, processing received messages,
- * and sending acknowledgment responses.
+ * This module is the main entry point of the system communication controller.
+ * It is responsible for initializing GPIO and UART, reading data from UART,
+ * processing received messages, and sending acknowledgment responses.
  *
- * The application reads data from UART1 and expects a fixed-length message. 
- * Upon receiving a complete message, it processes the message and sends an 
+ * The application reads data from UART1 and expects a fixed-length message.
+ * Upon receiving a complete message, it processes the message and sends an
  * acknowledgment back via UART.
  *
  * Version: v1.0
@@ -17,6 +17,7 @@
  * 04-09-2024       Morris           v1.0        created
  *
  */
+
 
 #include "gpio/gpio.h"
 #include "uart/uart.h"
