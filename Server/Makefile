@@ -3,9 +3,7 @@ all:     out_server                            \
          out_giis                              \
          out_insert_data_from_giis_shm         \
          out_update_prices                     \
-         out_prk_sys_srv_run                   \
-         out_tcp_client                        \
-         out_ipc_sender
+         out_prk_sys_srv_run
 
 
 # Linux Server
@@ -24,17 +22,7 @@ out_prk_sys_srv_run: prk_sys_srv_run.c
 	gcc prk_sys_srv_run.c -o out_prk_sys_srv_run
 
 
-# BBG clients
-# -----------
-out_ipc_sender: ipc_sender.c
-	gcc ipc_sender.c -o out_ipc_sender
-out_tcp_client: tcp_client.c
-	gcc tcp_client.c -o out_tcp_client
-
-
 CLEAN_FILES = \
-	out_tcp_client \
-	out_ipc_sender \
 	out_server \
 	out_listener \
 	out_giis \
@@ -48,22 +36,3 @@ clean:
 
 
 
-
-## Linux Server
-## ------------
-#out_server
-#out_listener
-#out_giis
-#out_insert_data_from_giis_shm
-#out_update_prices
-#
-#out_prk_sys_srv_run
-#
-#
-## BBG clients
-## -----------
-#out_tcp_client
-#out_ipc_sender
-#
-###############################################################
-#
