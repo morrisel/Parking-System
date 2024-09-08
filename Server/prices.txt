@@ -1,5 +1,0 @@
-Zone A,5.82
-Zone B,3.50
-Zone C,2.25
-New York, 15.7
-Tel-Aviv, 3.21
