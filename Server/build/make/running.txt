@@ -1,0 +1,20 @@
+
+
+# Linux Server
+# ------------
+out_server
+out_listener
+out_giis
+
+out_insert_data_from_giis_shm
+
+out_update_prices
+
+
+
+
+# BBG clients
+# -----------
+out_ipc_sender
+out_tcp_client
+
