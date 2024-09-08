@@ -22,16 +22,16 @@ The Parking System is designed to monitor and manage parking spaces in real-time
     - Updates parking prices in the database based on a price file (`prices.txt`).
     - Adds new prices, modifies existing ones, and removes prices that are not present in the file.
 
-### Client Side (BeagleBone Green)
+### Client Side
 1.  **out_tcp_client:**
     - Reads parking sensor data from a FIFO (`tmp/gps_pipe`).
     - Sends the data (combined with the client's MAC address) to the out_server over TCP.
 2.  **out_ipc_sender:**
-    - Reads data from file (`ext_data.txt`) and sends it to the FIFO (`tmp/gps_pipe`), which is then consumed by `out_tcp_client`.
+    - Reads data from another file (`tmp/gps_fifo`) and sends it to the FIFO (`tmp/gps_pipe`), which is then consumed by `out_tcp_client`.
 
 ### Data Flow
 1.  **Data Acquisition:**
-    - Parking sensor data is sent to `tmp/gps_pipe`.
+    - Parking sensor data is sent to `tmp/gps_fifo`.
     - `out_ipc_sender` reads this data and writes it to `tmp/gps_pipe`.
     - `out_tcp_client` reads from `tmp/gps_pipe`, adds the client's MAC address, and sends the combined data to `out_server`.
 2.  **Data Processing and Storage:**
