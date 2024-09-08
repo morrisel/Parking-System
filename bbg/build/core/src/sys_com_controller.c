@@ -19,9 +19,9 @@
  */
 
 
-#include "gpio/gpio.h"
-#include "uart/uart.h"
-#include "data_formatter.h"
+#include "../../drivers/gpio/gpio.h"
+#include "../../drivers/uart/uart.h"
+#include "../inc/data_formatter.h"
 #include <stdio.h>
 #include <unistd.h>
 
