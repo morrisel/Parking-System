@@ -139,11 +139,11 @@ int main(void)
   char msg[15];
 
 	/*
-	 Pin PC_10 is configured as UART-TX (port CN8) to bbg UART4-RX
+	 Pin PC_10 is configured as UART-TX (port CN8) to bbg UART1-RX
 	 Pin PC_11 is configured as UART-RX (port CN8)
 
 	 Pin PD_12 is configured as UART-TX (port CN7)
-	 Pin PD_2 is configured as UART-RX (port CN8)
+	 Pin PD_2 is configured as UART-RX (port CN8) from bbg UART1-TX
 	 */
 
   HAL_StatusTypeDef status;
