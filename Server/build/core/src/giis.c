@@ -28,28 +28,18 @@
  */
 
 
+#include "../inc/giis.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#include <pthread.h>
+#include <pthread.h>                                                 /* For pthread_mutex_t */
 
 #include <fcntl.h>                                                   /* open(FIFO_TO_DB, O_WRONLY) */
 #include <sys/stat.h>                                                /* mkfifo */
 
-#define BUFFER_SIZE 1024
-#define SHM_KEY 0x1234
-#define OUTPUT_FILE "giis/gdfs.data"
-#define FIFO_TO_DB "giis/ipc_to_db"                                  /* Added named pipe */
-
-
-/* Shared memory structure */
-struct shared_data
-{
-    char data[BUFFER_SIZE];
-};
 
 /* Mutex for shared memory synchronization */
 pthread_mutex_t shm_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -57,15 +47,6 @@ pthread_mutex_t shm_mutex = PTHREAD_MUTEX_INITIALIZER;
 /**
  * read_from_shared_memory - Thread function to read data from shared memory
  *                           and write it to an output file and a FIFO.
- *
- * This function attaches to the shared memory segment specified by SHM_KEY,
- * reads the data from it, and writes the data to an output file defined by OUTPUT_FILE
- * and a FIFO file defined by FIFO_TO_DB. The shared memory data is cleared after
- * being read to prevent duplicate processing.
- *
- * @arg: Unused parameter, required for pthread_create compatibility.
- *
- * Return: NULL
  */
 void *read_from_shared_memory(void *arg)
 {

@@ -31,43 +31,22 @@
  *                                                          - Added mutexes and semaphores for synchronization
  *                                                          - Updated parallelism management
  *                                                          - Added signal handling for graceful shutdown
+ *
+ *  09-09-2024      morris              v2.0            add header file
  * 
  */
 
 
+#include "../inc/server.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <pthread.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <semaphore.h>
 #include <signal.h>
 
-#define SERVER_PORT            12345                                 /* Server port number */
-#define BUFFER_SIZE            1024                                  /* Buffer size for reading and writing data */
-#define SHM_KEY                0x1234                                /* Key for shared memory */
-#define MAX_CLIENTS            10                                    /* Maximum number of concurrent clients */
-#define VERSION                "1.1"                                 /* Server version */
-
-
-/* Shared memory structure */
-struct shared_data
-{
-    char data[BUFFER_SIZE];                                          /* Buffer to hold shared data */
-};
-
-/* Thread argument structure */
-struct thread_arg
-{
-    int                csck;                                         /* Client socket descriptor */
-    struct sockaddr_in caddr;                                        /* Client address structure */
-};
-
-/* Mutex for shared memory synchronization */
-pthread_mutex_t shm_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Semaphore for controlling the number of concurrent clients */
 sem_t client_sem;
