@@ -37,8 +37,10 @@ bool uart_is_open(const uart_t *uart);
 ssize_t uart_write_data(uart_t *uart, const char *buff);
 ssize_t uart_read_data(uart_t *uart, char *buff, uint32_t sizeRead);
 
+/* Functions to send and receive structs */
+ssize_t uart_send_struct(uart_t *uart, const void *data, size_t size);
+ssize_t uart_receive_struct(uart_t *uart, void *data, size_t size);
 
-/* Ensure the function is declared here before it is used */
 bool uart_init_device(uart_t *uart);
 
 #endif
