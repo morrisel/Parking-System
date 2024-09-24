@@ -1,15 +1,15 @@
 /**
  * uart.c - Functions for handling UART communication.
  *
- * This file contains the implementation of functions to initialize, 
- * configure, and interact with UART (Universal Asynchronous 
- * Receiver-Transmitter) devices. The code is designed to provide 
- * a simple interface for opening, closing, reading from, and writing 
- * to a UART port. It handles the configuration of UART parameters 
+ * This file contains the implementation of functions to initialize,
+ * configure, and interact with UART (Universal Asynchronous
+ * Receiver-Transmitter) devices. The code is designed to provide
+ * a simple interface for opening, closing, reading from, and writing
+ * to a UART port. It handles the configuration of UART parameters
  * such as baud rate, parity, data bits, and stop bits.
  *
- * Note: The code assumes the presence of a valid UART configuration 
- * structure (uart_t) and does not perform any high-level error 
+ * Note: The code assumes the presence of a valid UART configuration
+ * structure (uart_t) and does not perform any high-level error
  * handling beyond reporting failures.
  *
  * Version: v1.0
@@ -18,6 +18,7 @@
  *
  * Date:            Name:            Version:    Modification:
  * 04-09-2024       Morris           v1.0        created
+ * 24-09-2024       Morris           v1.1        add mechanism for receiving structs
  *
  */
 
@@ -28,10 +29,12 @@
 #include <string.h>
 #include <stdio.h>
 
+
+
 /**
  * uart_init - Initialize the UART port with the specified settings.
  * @uart: Pointer to the uart_t structure to initialize.
- * @path: Path to the UART device (e.g., /dev/ttyS0).
+ * @path: Path to the UART1 device (e.g., /dev/ttyS1).
  * @baudRate: Baud rate for communication.
  * @parity: Parity setting ('N' for None, 'E' for Even, 'O' for Odd).
  * @databits: Number of data bits (usually 7 or 8).
@@ -44,8 +47,9 @@
  * it for communication. If the initialization fails, the UART
  * port is closed, and an error is reported.
  */
-void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, uint32_t databits, uint32_t stopbits, uint32_t vmin, uint32_t timeout) 
+void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, uint32_t databits, uint32_t stopbits, uint32_t vmin, uint32_t timeout)
 {
+    /* Save configuration parameters in the uart_t structure */
     uart->baudRate = baudRate;
     uart->parity = parity;
     uart->databits = databits;
@@ -55,20 +59,23 @@ void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, u
     uart->fd = -1;
     uart->isOpen = false;
 
-    uart->fd = open(path, O_RDWR | O_NOCTTY);
-    if (uart->fd == -1) 
-    {
+    /* Specify the path to the UART device */
+    uart->fd = open(path, O_RDWR | O_NOCTTY | O_SYNC);
+    if (uart->fd < 0) {
+/*        perror("open uart device"); */
         perror("Failed to open port");
         return;
     }
 
-    uart->isOpen = true;
 
-    if (!uart_init_device(uart)) 
-    {
-        uart_deinit(uart);
-        perror("Failed to initialize uart");
-    }
+/*    if (!uart_init_device(uart)) */
+/*    { */
+/*        uart_deinit(uart); */
+/*        perror("Failed to initialize uart"); */
+/*    } */
+
+/*    uart->isOpen = true; */
+
 }
 
 /*
@@ -77,10 +84,10 @@ void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, u
  *
  * This function closes the UART port if it is open, and marks it as closed.
  */
-void uart_deinit(uart_t *uart) 
+void uart_deinit(uart_t *uart)
 {
-    if (uart->isOpen && close(uart->fd) == 0) 
-    {
+    if (uart->isOpen) {
+        close(uart->fd);
         uart->isOpen = false;
     }
 }
@@ -91,7 +98,7 @@ void uart_deinit(uart_t *uart)
  *
  * Returns true if the UART port is open, false otherwise.
  */
-bool uart_is_open(const uart_t *uart) 
+bool uart_is_open(const uart_t *uart)
 {
     return uart->isOpen;
 }
@@ -103,8 +110,11 @@ bool uart_is_open(const uart_t *uart)
  *
  * Returns the number of bytes written, or -1 if an error occurred.
  */
-ssize_t uart_write_data(uart_t *uart, const char *buff) 
+ssize_t uart_write_data(uart_t *uart, const char *buff)
 {
+    if (!uart_is_open(uart)) {
+        return -1;
+    }
     return write(uart->fd, buff, strlen(buff));
 }
 
@@ -116,60 +126,106 @@ ssize_t uart_write_data(uart_t *uart, const char *buff)
  *
  * Returns the number of bytes read, or -1 if an error occurred.
  */
-ssize_t uart_read_data(uart_t *uart, char *buff, uint32_t sizeRead) 
+ssize_t uart_read_data(uart_t *uart, char *buff, uint32_t sizeRead)
 {
+    if (!uart_is_open(uart)) {
+        return -1;
+    }
     return read(uart->fd, buff, sizeRead);
+}
+
+
+ssize_t uart_send_struct(uart_t *uart, const void *data, size_t size)
+{
+    if (!uart_is_open(uart)) {
+        return -1;
+    }
+    return write(uart->fd, data, size);
+}
+
+
+ssize_t uart_receive_struct(uart_t *uart, void *data, size_t size)
+{
+    if (!uart_is_open(uart)) {
+        return -1;
+    }
+    return read(uart->fd, data, size);
 }
 
 /*
  * uart_init_device - Configure the UART device with the specified settings.
  * @uart: Pointer to the uart_t structure representing the UART device.
  *
- * This function applies the UART settings such as baud rate, parity, 
- * data bits, and stop bits to the UART device. It configures the 
+ * This function applies the UART settings such as baud rate, parity,
+ * data bits, and stop bits to the UART device. It configures the
  * device's termios structure and applies the settings immediately.
  *
  * Returns true if the device was successfully configured, false otherwise.
  */
-bool uart_init_device(uart_t *uart) 
+bool uart_init_device(uart_t *uart)
 {
-    if (tcgetattr(uart->fd, &uart->uart)) 
-    {
+    if (uart->fd < 0) {
         return false;
     }
 
-    cfsetispeed(&uart->uart, uart->baudRate);
+    /* Get current UART settings */
+    if (tcgetattr(uart->fd, &uart->uart) != 0) {
+        perror("tcgetattr");
+        close(uart->fd);
+        return false;
+    }
+
+    /* Set baud rate */
     cfsetospeed(&uart->uart, uart->baudRate);
+    cfsetispeed(&uart->uart, uart->baudRate);
 
-    uart->uart.c_cflag &= ~PARENB;     /* Clear parity enable */
-    uart->uart.c_cflag &= ~CSTOP;      /* Clear stop bits */
-    uart->uart.c_cflag &= ~CSIZE;      /* Clear character size bits */
+    /* Configure parity */
+    if (uart->parity == 'N') {
+        uart->uart.c_cflag &= ~PARENB; /* No parity */
+    } else if (uart->parity == 'E') {
+        uart->uart.c_cflag |= PARENB;  /* Even parity */
+        uart->uart.c_cflag &= ~PARODD;
+    } else if (uart->parity == 'O') {
+        uart->uart.c_cflag |= PARENB;  /* Odd parity */
+        uart->uart.c_cflag |= PARODD;
+    }
 
-    uart->uart.c_iflag = IGNBRK;       /* Ignore break condition */
-    uart->uart.c_lflag = 0;            /* No local modes */
-    uart->uart.c_oflag = 0;            /* No output processing */
 
-    uart->uart.c_cflag |= ~PARENB;     /* Set parity bits */
-    uart->uart.c_cflag |= ~CSTOP;      /* Set stop bits */
-    uart->uart.c_cflag |= ~CSIZE;      /* Set data bits */
+    /* Set data bits */
+    uart->uart.c_cflag &= ~CSIZE;  /* Clear data bits mask */
+    switch (uart->databits) {
+        case 8:
+            uart->uart.c_cflag |= CS8;
+            break;
+        case 7:
+            uart->uart.c_cflag |= CS7;
+            break;
+        default:
+            fprintf(stderr, "Unsupported databits: %u\n", uart->databits);
+            close(uart->fd);
+            return false;
+    }
 
-    /*    // Set parity, stop bits, and data bits based on user settings */
-    /*    uart->uart.c_cflag |= (uart->parity == 'N' ? 0 : (uart->parity == 'E' ? PARENB : (PARENB | PARODD))); */
-    /*    uart->uart.c_cflag |= (uart->stopbits == 2 ? CSTOPB : 0); */
-    /*    uart->uart.c_cflag |= (uart->databits == 7 ? CS7 : CS8); */
+    /* Set the number of stop bits */
+    if (uart->stopbits == 2) {
+        uart->uart.c_cflag |= CSTOPB;  /* 2 stop bits */
+    } else {
+        uart->uart.c_cflag &= ~CSTOPB; /* 1 stop bit */
+    }
 
-    uart->uart.c_iflag &= ~(IXON | IXOFF | IXANY); /* Disable flow control */
-
-    uart->uart.c_cc[VTIME] = uart->timeout;
+    /* Set minimum number of bytes for reading */
     uart->uart.c_cc[VMIN] = uart->vmin;
+    
+    /* Set timeout for data waiting */
+    uart->uart.c_cc[VTIME] = uart->timeout;
 
-    uart->uart.c_cflag |= (CLOCAL | CREAD); /* Enable receiver and set local mode */
-
-    if (tcsetattr(uart->fd, TCSANOW, &uart->uart)) 
-    {
+    /* Apply UART settings */
+    if (tcsetattr(uart->fd, TCSANOW, &uart->uart) != 0) {
+        perror("tcsetattr");
+        close(uart->fd);
         return false;
     }
 
+    uart->isOpen = true;
     return true;
 }
-
