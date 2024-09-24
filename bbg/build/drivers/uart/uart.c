@@ -62,19 +62,17 @@ void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, u
     /* Specify the path to the UART device */
     uart->fd = open(path, O_RDWR | O_NOCTTY | O_SYNC);
     if (uart->fd < 0) {
-/*        perror("open uart device"); */
         perror("Failed to open port");
         return;
     }
 
+    if (!uart_init_device(uart))
+    {
+        uart_deinit(uart);
+        perror("Failed to initialize uart");
+    }
 
-/*    if (!uart_init_device(uart)) */
-/*    { */
-/*        uart_deinit(uart); */
-/*        perror("Failed to initialize uart"); */
-/*    } */
-
-/*    uart->isOpen = true; */
+    uart->isOpen = true;
 
 }
 
@@ -86,8 +84,8 @@ void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, u
  */
 void uart_deinit(uart_t *uart)
 {
-    if (uart->isOpen) {
-        close(uart->fd);
+    if (uart->isOpen && close(uart->fd) == 0)
+    {
         uart->isOpen = false;
     }
 }
@@ -112,9 +110,6 @@ bool uart_is_open(const uart_t *uart)
  */
 ssize_t uart_write_data(uart_t *uart, const char *buff)
 {
-    if (!uart_is_open(uart)) {
-        return -1;
-    }
     return write(uart->fd, buff, strlen(buff));
 }
 
@@ -128,27 +123,18 @@ ssize_t uart_write_data(uart_t *uart, const char *buff)
  */
 ssize_t uart_read_data(uart_t *uart, char *buff, uint32_t sizeRead)
 {
-    if (!uart_is_open(uart)) {
-        return -1;
-    }
     return read(uart->fd, buff, sizeRead);
 }
 
 
 ssize_t uart_send_struct(uart_t *uart, const void *data, size_t size)
 {
-    if (!uart_is_open(uart)) {
-        return -1;
-    }
     return write(uart->fd, data, size);
 }
 
 
 ssize_t uart_receive_struct(uart_t *uart, void *data, size_t size)
 {
-    if (!uart_is_open(uart)) {
-        return -1;
-    }
     return read(uart->fd, data, size);
 }
 
@@ -164,12 +150,14 @@ ssize_t uart_receive_struct(uart_t *uart, void *data, size_t size)
  */
 bool uart_init_device(uart_t *uart)
 {
-    if (uart->fd < 0) {
+    if (uart->fd < 0)
+    {
         return false;
     }
 
     /* Get current UART settings */
-    if (tcgetattr(uart->fd, &uart->uart) != 0) {
+    if (tcgetattr(uart->fd, &uart->uart) != 0)
+    {
         perror("tcgetattr");
         close(uart->fd);
         return false;
@@ -180,12 +168,17 @@ bool uart_init_device(uart_t *uart)
     cfsetispeed(&uart->uart, uart->baudRate);
 
     /* Configure parity */
-    if (uart->parity == 'N') {
+    if (uart->parity == 'N')
+    {
         uart->uart.c_cflag &= ~PARENB; /* No parity */
-    } else if (uart->parity == 'E') {
+    }
+    else if (uart->parity == 'E')
+    {
         uart->uart.c_cflag |= PARENB;  /* Even parity */
         uart->uart.c_cflag &= ~PARODD;
-    } else if (uart->parity == 'O') {
+    }
+    else if (uart->parity == 'O')
+    {
         uart->uart.c_cflag |= PARENB;  /* Odd parity */
         uart->uart.c_cflag |= PARODD;
     }
@@ -193,7 +186,8 @@ bool uart_init_device(uart_t *uart)
 
     /* Set data bits */
     uart->uart.c_cflag &= ~CSIZE;  /* Clear data bits mask */
-    switch (uart->databits) {
+    switch (uart->databits)
+    {
         case 8:
             uart->uart.c_cflag |= CS8;
             break;
@@ -207,20 +201,24 @@ bool uart_init_device(uart_t *uart)
     }
 
     /* Set the number of stop bits */
-    if (uart->stopbits == 2) {
+    if (uart->stopbits == 2)
+    {
         uart->uart.c_cflag |= CSTOPB;  /* 2 stop bits */
-    } else {
+    }
+    else
+    {
         uart->uart.c_cflag &= ~CSTOPB; /* 1 stop bit */
     }
 
     /* Set minimum number of bytes for reading */
     uart->uart.c_cc[VMIN] = uart->vmin;
-    
+
     /* Set timeout for data waiting */
     uart->uart.c_cc[VTIME] = uart->timeout;
 
     /* Apply UART settings */
-    if (tcsetattr(uart->fd, TCSANOW, &uart->uart) != 0) {
+    if (tcsetattr(uart->fd, TCSANOW, &uart->uart) != 0)
+    {
         perror("tcsetattr");
         close(uart->fd);
         return false;
