@@ -18,7 +18,7 @@
  *
  * Date:            Name:            Version:    Modification:
  * 04-09-2024       Morris           v1.0        created
- * 24-09-2024       Morris           v1.1        add mechanism for receiving structs
+ * 26-09-2024       Morris           v1.1        add mechanism for receiving structs
  *
  */
 
@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
-
 
 
 /**
@@ -47,9 +46,8 @@
  * it for communication. If the initialization fails, the UART
  * port is closed, and an error is reported.
  */
-void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, uint32_t databits, uint32_t stopbits, uint32_t vmin, uint32_t timeout)
+void uart_init(uart_t *uart, const char *path, speed_t baudRate, char parity, uint32_t databits, uint32_t stopbits, uint32_t vmin, uint32_t timeout)
 {
-    /* Save configuration parameters in the uart_t structure */
     uart->baudRate = baudRate;
     uart->parity = parity;
     uart->databits = databits;
@@ -59,22 +57,29 @@ void uart_init(uart_t *uart, const char *path, BaudRate baudRate, char parity, u
     uart->fd = -1;
     uart->isOpen = false;
 
-    /* Specify the path to the UART device */
-    uart->fd = open(path, O_RDWR | O_NOCTTY | O_SYNC);
-    if (uart->fd < 0) {
+    /* Open UART device */
+    uart->fd = open(path, O_RDWR | O_NOCTTY | O_NDELAY);             /* Use O_NDELAY for non-blocking access */
+    if (uart->fd < 0)
+    {
         perror("Failed to open port");
         return;
     }
 
+    printf("UART opened successfully on %s\n", path);
+
     if (!uart_init_device(uart))
     {
         uart_deinit(uart);
-        perror("Failed to initialize uart");
+        perror("Failed to initialize UART device");
+    }
+    else
+    {
+        printf("UART initialized successfully\n");                   /* Debug message */
     }
 
     uart->isOpen = true;
-
 }
+
 
 /*
  * uart_deinit - Close the UART port.
@@ -155,75 +160,20 @@ bool uart_init_device(uart_t *uart)
         return false;
     }
 
-    /* Get current UART settings */
-    if (tcgetattr(uart->fd, &uart->uart) != 0)
-    {
-        perror("tcgetattr");
-        close(uart->fd);
-        return false;
-    }
-
-    /* Set baud rate */
-    cfsetospeed(&uart->uart, uart->baudRate);
+    tcgetattr(uart->fd, &uart->uart);
     cfsetispeed(&uart->uart, uart->baudRate);
+    cfsetospeed(&uart->uart, uart->baudRate);
 
-    /* Configure parity */
-    if (uart->parity == 'N')
-    {
-        uart->uart.c_cflag &= ~PARENB; /* No parity */
-    }
-    else if (uart->parity == 'E')
-    {
-        uart->uart.c_cflag |= PARENB;  /* Even parity */
-        uart->uart.c_cflag &= ~PARODD;
-    }
-    else if (uart->parity == 'O')
-    {
-        uart->uart.c_cflag |= PARENB;  /* Odd parity */
-        uart->uart.c_cflag |= PARODD;
-    }
+    uart->uart.c_cflag &= ~PARENB;                                   /* Disable parity */
+    uart->uart.c_cflag &= ~CSTOPB;                                   /* 1 stop bit */
+    uart->uart.c_cflag &= ~CSIZE;                                    /* Mask the character size bits */
+    uart->uart.c_cflag |= CS8;                                       /* 8 data bits */
 
+    uart->uart.c_cflag |= (CLOCAL | CREAD);
+    uart->uart.c_iflag &= ~(IXON | IXOFF | IXANY);                   /* No software flow control */
+    uart->uart.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);           /* Raw input */
 
-    /* Set data bits */
-    uart->uart.c_cflag &= ~CSIZE;  /* Clear data bits mask */
-    switch (uart->databits)
-    {
-        case 8:
-            uart->uart.c_cflag |= CS8;
-            break;
-        case 7:
-            uart->uart.c_cflag |= CS7;
-            break;
-        default:
-            fprintf(stderr, "Unsupported databits: %u\n", uart->databits);
-            close(uart->fd);
-            return false;
-    }
+    tcsetattr(uart->fd, TCSANOW, &uart->uart);
 
-    /* Set the number of stop bits */
-    if (uart->stopbits == 2)
-    {
-        uart->uart.c_cflag |= CSTOPB;  /* 2 stop bits */
-    }
-    else
-    {
-        uart->uart.c_cflag &= ~CSTOPB; /* 1 stop bit */
-    }
-
-    /* Set minimum number of bytes for reading */
-    uart->uart.c_cc[VMIN] = uart->vmin;
-
-    /* Set timeout for data waiting */
-    uart->uart.c_cc[VTIME] = uart->timeout;
-
-    /* Apply UART settings */
-    if (tcsetattr(uart->fd, TCSANOW, &uart->uart) != 0)
-    {
-        perror("tcsetattr");
-        close(uart->fd);
-        return false;
-    }
-
-    uart->isOpen = true;
     return true;
 }
