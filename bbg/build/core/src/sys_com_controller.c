@@ -1,161 +1,126 @@
-/**
- * sys_com_controller.c
- *
- * This module is the main entry point of the system communication controller.
- * It is responsible for initializing GPIO and UART, reading data from UART,
- * processing received messages, and sending acknowledgment responses.
- *
- * The application reads data from UART1 and expects a fixed-length message.
- * Upon receiving a complete message, it processes the message and sends an
- * acknowledgment back via UART.
- *
- * Version: v1.0
- * Date:    04-09-2024
- * Author:  Morris
- *
- * Date:            Name:            Version:    Modification:
- * 04-09-2024       Morris           v1.0        created
- *
- */
-
-
-#include "../../drivers/gpio/gpio.h"
-#include "../../drivers/uart/uart.h"
-#include "../inc/data_formatter.h"
+#include "gpio.h"
+#include "uart.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
-#define MESSAGE_LENGTH 13    /* Define the length of the message to be received */
+/* The message length we're expecting to receive, defined by the size of the DataPacket structure. */
+/* We pack the structure to ensure that no padding bytes are added by the compiler. */
+#define MESSAGE_LENGTH sizeof(DataPacket)   /* длина полученного сообщения */
 
+/* This structure represents the data packet we expect to receive via UART. */
+/* It contains an operation code (either 'D' or 'S'), followed by three 16-bit integer values (x, y, z). */
+#pragma pack(push, 1)
+struct __attribute__((packed)) DataPacket
+{
+    char op_code;      /* Operation code: 'D' for data, 'S' for some other operation (hypothetically). */
+    uint16_t x;        /* 16-bit integer, could represent some form of coordinate or measurement. */
+    uint16_t y;        /* Another 16-bit integer. */
+    uint16_t z;        /* And yet another 16-bit integer. */
+};
+#pragma pack(pop)
+#define DataPacket struct DataPacket    /* Just making things easier to refer to later */
 
-/**
- * main
- *
- * The main function of the application. It initializes GPIO and UART, then enters 
- * a loop where it continuously reads data from UART, processes complete messages,
- * and sends acknowledgment responses.
- *
- * The function sets up GPIO pins for UART communication, configures UART with 
- * the desired parameters, and then enters an infinite loop to handle incoming data.
- * Received data is processed to extract complete messages, and responses are sent 
- * back to the sender.
- *
- * Return: 0 on successful execution.
- */
 int main()
 {
-    /*	FILE *output_file = fopen("ext_data.txt", "a"); */
-    /*	if (output_file == NULL) */
-    /*	{ */
-    /*		perror("Error opening ext_data.txt"); */
-    /*		return -1; */
-    /*	} */
-
-    /* Initialize GPIO for UART communication */
     gpio_t gpio_tx, gpio_rx;
 
-    /* Set up GPIO for UART transmission (TX pin) */
-    gpio_init(&gpio_tx, 15);   /* GPIO_15 (pin 24) */
+    /* Initialize GPIO pin 15 for TX (transmitting) and set its direction to output. */
+    gpio_init(&gpio_tx, 15);
+    gpio_set_direction(&gpio_tx, "out");
 
-    /* Set up GPIO for UART reception (RX pin) */
-    gpio_init(&gpio_rx, 14);   /* GPIO_14 (pin 26) */
+    /* Initialize GPIO pin 14 for RX (receiving) and set its direction to input. */
+    gpio_init(&gpio_rx, 14);
+    gpio_set_direction(&gpio_rx, "in");
 
-    /* Configure GPIO directions */
-    gpio_set_direction(&gpio_tx, "out");  /* TX pin as output (Set the direction of GPIO_15) */
-    gpio_set_direction(&gpio_rx, "in");    /* RX pin as input (Set the direction of GPIO_14) */
-
-    /* Setting up UART1 with specified parameters */
     uart_t uart1;
+    /* Initialize the UART interface on /dev/ttyS1, with 9600 baud rate, 8 data bits, no parity, 1 stop bit. */
     uart_init(&uart1, "/dev/ttyS1", BAUD_9600, 'N', 8, 1, 1, 1);
 
-    /* Check if UART1 was successfully opened */
-    if (!uart_is_open(&uart1))
-    {
+    /* Try to open the UART device. If it fails, print an error and return -1 to signal failure. */
+    if (!uart_init_device(&uart1)) {
         fprintf(stderr, "Failed to open UART1.\n");
         return -1;
     }
 
-    /* Buffer for storing received messages */
-    char received_message[MESSAGE_LENGTH + 1];
-    ssize_t bytes_read;         /* Number of bytes read from UART */
-    const char *response_message = "ACK"; /* Response message to be sent */
-    size_t message_length = 0;  /* Length of the currently received message */
-    int message_started = 0;   /* Flag to indicate if a message has started */
+    /* Buffer to accumulate incoming data from UART. It's sized to fit a full DataPacket. */
+    char buffer[MESSAGE_LENGTH];  /* буфер для накопления данных */
+    ssize_t bytes_received;
 
+    printf("Struct length: %u\n", MESSAGE_LENGTH);
+    puts("=======================");
 
-    /**
-     * Main loop to continuously read data from UART and process it.
-     *
-     * The loop reads one byte of data at a time, checks if the message has started,
-     * and accumulates bytes until a complete message is received. Once a complete
-     * message is received, it is processed, and an acknowledgment response is sent.
-     */
+    /* Main loop to continuously read data from UART and process it. */
     while (1)
     {
-        /* Read data from UART1_RXD */
-        bytes_read = uart_read_data(&uart1, &received_message[message_length], 1);
-        if (bytes_read > 0)
-        {
-            char received_char = received_message[message_length];
+        bytes_received = 0;
 
-            /* Check if the message has started */
-            if (!message_started)
+        /* We check if we've received the full message. If not, we keep reading. */
+        if (bytes_received < MESSAGE_LENGTH)
+        {
+            ssize_t result = uart_read_data(&uart1, buffer + bytes_received, MESSAGE_LENGTH - bytes_received);
+            if (result > 0)
             {
-                /* Start a new message if 'D' or 'S' is received */
-                if (received_char == 'D' || received_char == 'S')
-                {
-                    message_started = 1;
-                    received_message[0] = received_char;
-                    message_length = 1;
-                }
+                /* If we successfully read data, we add the number of bytes read to the total. */
+                bytes_received += result;
+            }
+            else if (result == -1 && errno == EAGAIN)
+            {
+                /* If the read operation would block, we just sleep for a bit and try again. */
+                usleep(100);  /* Неблокирующая пауза */
+                continue;
+            }
+            else if (result == 0)
+            {
+                printf("Connection closed.\n");
+                break;
             }
             else
             {
-                /* Continue receiving the message */
-                received_message[message_length++] = received_char;
-
-                /* Check if the message is complete */
-                if (message_length == MESSAGE_LENGTH)
-                {
-                    received_message[message_length] = '\0';  /* Null-terminate the string */
-                    printf("Received complete message: %s\n", received_message);
-
-                    /* Process the complete message */
-                    process_received_message(received_message);
-
-                    /* Reset message state for the next message */
-                    message_started = 0;
-                    message_length = 0;
-
-                    /* Send acknowledgment response */
-                    ssize_t bytes_written = uart_write_data(&uart1, response_message);
-                    if (bytes_written > 0)
-                    {
-                        /* Confirm that the message was sent successfully */
-                        printf("Sending answer message: %s\n", response_message);
-                    }
-                    else
-                    {
-                        /* Handle error in writing to UART */
-                        fprintf(stderr, "Can't write data to UART\n");
-                    }
-                }
+                /* If we encounter an error, print it and break out of the loop. */
+                perror("Error receiving data from UART");
+                break;
             }
+        }
+
+        /* Once we've received the full message, we can start processing it. */
+        if (bytes_received == MESSAGE_LENGTH)
+        {
+            printf("Received bytes:\n");
+            for (int i = 0; i < MESSAGE_LENGTH; ++i)
+            {
+                /* Print each byte as a hexadecimal value, because why not? */
+                printf("%02X ", (unsigned char)buffer[i]);
+            }
+            printf("\n");
+
+            /* Cast the buffer to a DataPacket structure and extract the information. */
+            DataPacket *received_packet = (DataPacket *)buffer;
+
+            /* Print out the contents of the received packet in a readable format. */
+            printf("Received DataPacket:\n");
+            printf("op_code = %c\n", received_packet->op_code);
+            printf("x = %u\n", received_packet->x);
+            printf("y = %u\n", received_packet->y);
+            printf("z = %u\n", received_packet->z);
         }
         else
         {
-            /* Handle error in reading from UART */
-            fprintf(stderr, "Can't read data from UART\n");
+            /* If we didn't receive a full packet, let the user know. */
+            printf("Incomplete packet received.\n");
         }
 
-        /* Sleep for 100 ms before the next iteration */
-        usleep(100000);
+        puts("");
+
+        /* Sleep for 1 millisecond before repeating the loop to avoid hogging the CPU. */
+        usleep(100);
     }
 
-    /* Clean up resources before exiting */
+    /* Once we're done, clean up the UART and GPIO resources before exiting. */
+    uart_deinit(&uart1);
     gpio_deinit(&gpio_tx);
     gpio_deinit(&gpio_rx);
-    uart_deinit(&uart1);
 
     return 0;
 }

@@ -1,7 +1,7 @@
 /**
- * ipc_sender.c: Sends data from a file to a FIFO (named pipe)
+ * ipc_sender.c: Sends data from a function to a FIFO (named pipe)
  *
- * This program reads GPS data from a specified file and writes it to a
+ * This program reads GPS data from a function and writes it to a
  * named FIFO (First In, First Out) file. It uses signal handling to
  * gracefully handle interruptions (e.g., Ctrl+C).
  *
@@ -12,7 +12,7 @@
  *      ./out_ipc_sender
  *
  * Features:
- * - Reads from a GPS data file located at 'ext_data.txt'.
+ * - Retrieves data from a function 'get_formatted_data()'.
  * - Writes data to a FIFO defined by FIFO_PATH.
  * - Handles SIGINT (Ctrl+C) to allow graceful shutdown.
  *
@@ -28,6 +28,7 @@
  *
  */
 
+#include "data_struct_format.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,14 +38,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
-#include <sys/inotify.h>
+
+#define SHM_KEY 1234
 
 #define FIFO_PATH "tmp/gps_pipe"                                     /* Path to the named pipe (FIFO) */
 #define BUFFER_SIZE 256                                              /* Buffer size for reading/writing data */
-
-#define FILE_TO_MONITOR "ext_data.txt"                               /* File to monitor for changes */
-#define EVENT_SIZE  ( sizeof (struct inotify_event) )                /* Size of one event */
-#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )                   /* Buffer length */
 
 volatile sig_atomic_t running = 1;                                   /* Flag to control program execution */
 
@@ -62,14 +60,13 @@ void signal_handler(int signum __attribute__((unused)))
     running = 0;                                                     /* Set flag to stop the main loop */
 }
 
+const char *get_formatted_data(); /* Declaration of the function you will use */
+
 int main()
 {
     int      fifo_fd;                                                /* Descriptor for FIFO file */
     char     buffer[BUFFER_SIZE];                                    /* Buffer to hold data */
     ssize_t  bwr;                                                    /* Number of bytes written */
-    FILE     *dfile;                                                 /* File pointer for the data file */
-    int      inotify_fd, watch_fd;                                   /* Descriptors for inotify */
-    char     event_buf[BUF_LEN];                                     /* Buffer for inotify events */
 
     /* Check if FIFO exists, create if not */
     if (access(FIFO_PATH, F_OK) == -1)
@@ -98,80 +95,40 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    /* Initialize inotify */
-    inotify_fd = inotify_init();
-    if (inotify_fd < 0)
-    {
-        perror("inotify_init");
-        close(fifo_fd);
-        exit(EXIT_FAILURE);
-    }
-
-    /* Add watch on the file */
-    watch_fd = inotify_add_watch(inotify_fd, FILE_TO_MONITOR, IN_CLOSE_WRITE);
-    if (watch_fd < 0)
-    {
-        perror("inotify_add_watch");
-        close(inotify_fd);
-        close(fifo_fd);
-        exit(EXIT_FAILURE);
-    }
 
     /* Monitor the file for changes and write to FIFO when it's modified */
     while (running)
     {
-        int length = read(inotify_fd, event_buf, BUF_LEN);
-        if (length < 0)
+        const char *data = get_formatted_data();
+        if (data != NULL)
         {
-            perror("read");
-            break;
-        }
-
-        int i = 0;
-        while (i < length)
-        {
-            struct inotify_event *event = (struct inotify_event *) &event_buf[i];
-            if (event->mask & IN_CLOSE_WRITE)
+            strncpy(buffer, data, BUFFER_SIZE); /* Copy data to buffer */
+            buffer[BUFFER_SIZE - 1] = '\0';     /* Ensure null-terminated */
+            bwr = write(fifo_fd, buffer, strlen(buffer));
+            if (bwr == -1)
             {
-                /* File was modified and closed, read and send data */
-                dfile = fopen(FILE_TO_MONITOR, "r");
-                if (dfile == NULL)
+                if (errno == EAGAIN)
                 {
-                    perror("Error opening data file");
-                    break;
+                    /* FIFO full, try again later */
+                    usleep(10000);                           /* Wait for 10 milliseconds */
+                    continue;
                 }
-
-                while (fgets(buffer, BUFFER_SIZE, dfile) != NULL)
+                else
                 {
-                    bwr = write(fifo_fd, buffer, strlen(buffer));
-                    if (bwr == -1)
-                    {
-                        if (errno == EAGAIN)
-                        {
-                            /* FIFO full, try again later */
-                            usleep(10000);                           /* Wait for 10 milliseconds */
-                            continue;
-                        }
-                        else
-                        {
-                            perror("Error writing to FIFO");
-                            fclose(dfile);
-                            close(inotify_fd);
-                            close(fifo_fd);
-                            exit(EXIT_FAILURE);
-                        }
-                    }
+                    perror("Error writing to FIFO");
+                    close(fifo_fd);
+                    exit(EXIT_FAILURE);
                 }
-
-                fclose(dfile);                                       /* Close the data file */
             }
-            i += EVENT_SIZE + event->len;
         }
+        else
+        {
+            usleep(10000); /* Wait for 10 milliseconds if no data is available */
+        }
+
     }
 
     /* Cleanup */
-    inotify_rm_watch(inotify_fd, watch_fd);
-    close(inotify_fd);
     close(fifo_fd);
 
     return 0;
