@@ -277,7 +277,7 @@ int main()
         if (brd > 0)
         {
             buffer[brd] = '\0';                                      /* Null-terminate the string */
-            printf("Read from FIFO: %s", buffer);                    /* Print the read data */
+            printf("Read from FIFO: %s\n", buffer);                    /* Print the read data */
             fflush(stdout);                                          /* Flush the output buffer */
 
             /* Create a new buffer to hold MAC address and the data */
@@ -291,7 +291,8 @@ int main()
                 exit(EXIT_FAILURE);
             }
 
-            printf("Sent to server: %s", buffer);                    /* Print the sent data */
+            //printf("Sent to server: %s", buffer);                    /* Print the sent data */
+            printf("Sent to server: %s\n", buffer);                    /* Print the sent data */
         }
         else if (brd == 0)
         {
