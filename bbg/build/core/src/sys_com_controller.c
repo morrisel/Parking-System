@@ -132,11 +132,10 @@ int main()
         {
             printf("Incomplete packet received.\n");
         }
-
         puts("");
 
         /* Brief pause before restarting the loop to avoid CPU overuse. */
-        usleep(100);
+        sleep(1);
     }
 
     /* Clean up the UART and GPIO resources before exiting the program. */

@@ -127,7 +127,7 @@ int main()
             if (errno == EAGAIN)
             {
                 /* FIFO full, try again later */
-                usleep(10000);                                       /* Wait for 10 milliseconds */
+                usleep(100);                                       /* Wait for 10 milliseconds */
                 continue;
             }
             else
@@ -137,11 +137,13 @@ int main()
                 exit(EXIT_FAILURE);
             }
         }
-        usleep(10000);                                               /* Wait for 10 milliseconds if no data is available */
+        usleep(100);                                               /* Wait for 10 milliseconds if no data is available */
+        sleep(1);
     }
 
     /* Detach from the shared memory */
-    if (shmdt(shm_data) == -1) {
+    if (shmdt(shm_data) == -1)
+    {
         perror("shmdt failed");
         exit(EXIT_FAILURE);
     }
