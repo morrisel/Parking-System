@@ -1,4 +1,4 @@
-# BeagleBone Green (BBG) Technical Documentation for Parking System
+# BeagleBone Green (BBG) Technical Documentation for Parking System Project
 
 ## Introduction
 This document provides detailed information about the components running on the BeagleBone Green (BBG) as part of the Parking System project. The BBG acts as an intermediary device that receives data from the GPS sensor located on another device and forwards it to the central server. The software components on the BBG handle data formatting, inter-process communication (IPC), and data transmission to the server.
