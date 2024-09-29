@@ -6,15 +6,20 @@ This document provides detailed information about the components running on the 
 ## Components and Functionality
 
 ### 1. **data_formatter.c**
-   - **Description:** This module is responsible for processing and formatting lines of received data into a readable and structured format. It prepares the data before it is sent to the server or written to a file.
-   - **Functionality:** 
-     - Reads raw data from input sources.
-     - Formats the data into a predefined structure.
-     - Outputs the formatted data to a file or FIFO for further processing.
+   - **Description:** This module is responsible for both formatting data packets and managing shared memory for inter-process communication (IPC). It allows structured data (`DataPacket`) to be formatted into a human-readable format and also facilitates the storage of this data in shared memory for other processes to access.
+   - **Functionality:**
+     - Formats `DataPacket` structures into human-readable strings.
+     - Manages shared memory segments for storing `DataPacket` data.
+     - Provides functions to attach, detach, and remove shared memory.
+     - Ensures that the formatted data is consistent and ready for inter-process communication.
 
 ### 2. **ipc_sender.c**
    - **Description:** This program reads GPS data from a file and sends it to a FIFO (named pipe). It facilitates the transfer of sensor data to other processes on the BBG or the central server.
+
+   - **Description:**  
+
    - **Functionality:**
+   
      - Reads data from `ext_data.txt`.
      - Sends data to a FIFO defined by `FIFO_PATH`.
      - Handles interruptions gracefully, ensuring data consistency.
