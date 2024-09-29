@@ -54,9 +54,17 @@ The FIFOs ensure that data is sequentially processed and forwarded to the approp
 The Makefile provided in the project directory is used to compile all the source files. Below are the commands to use:
 
 #### Compilation
-To compile the programs, navigate to the project directory and run:
+To compile the programs, navigate to the project directory (`~/build/make/`) and run:
+```sh
+make
+```
+or
 ```sh
 make all
+```
+or make with links
+```sh
+make install
 ```
 
 #### Cleaning Up
