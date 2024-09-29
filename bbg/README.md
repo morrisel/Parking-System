@@ -20,6 +20,7 @@ This document provides detailed information about the components running on the 
      - Writes data to a FIFO defined by `FIFO_PATH`.
      - Gracefully handles signals like `SIGINT` to ensure a safe shutdown.
      - Uses `get_formatted_data` from `data_struct_format.c` to format the data before sending.
+
      - **Key Features**:
        - Inotify mechanism replaced with shared memory for monitoring file changes.
        - Signal handling for interruption (e.g., Ctrl+C) to allow safe termination.
