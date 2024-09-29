@@ -16,12 +16,10 @@ This document provides detailed information about the components running on the 
 ### 2. **ipc_sender.c**
    - **Description:** This program reads GPS data from a shared memory segment and writes it to a FIFO (named pipe). It handles signal interruptions `SIGINT` to ensure data consistency and uses formatted data from the `data_struct_format.c` module before transmission.
    - **Functionality:**
-     - Reads GPS data from shared memory.
-     - Writes data to a FIFO defined by `FIFO_PATH`.
-     - Gracefully handles signals like `SIGINT` to ensure a safe shutdown.
-     - Uses `get_formatted_data` from `data_struct_format.c` to format the data before sending.
-
-
+       - Reads GPS data from shared memory.
+       - Writes data to a FIFO defined by `FIFO_PATH`.
+       - Gracefully handles signals like `SIGINT` to ensure a safe shutdown.
+       - Uses `get_formatted_data` from `data_struct_format.c` to format the data before sending.
    - **Key Features**:
        - Inotify mechanism replaced with shared memory for monitoring file changes.
        - Signal handling for interruption (e.g., Ctrl+C) to allow safe termination.
