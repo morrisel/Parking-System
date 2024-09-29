@@ -20,10 +20,10 @@ This document provides detailed information about the components running on the 
      - Writes data to a FIFO defined by `FIFO_PATH`.
      - Gracefully handles signals like `SIGINT` to ensure a safe shutdown.
      - Uses `get_formatted_data` from `data_struct_format.c` to format the data before sending.
-     **Key Features**:
-     - Inotify mechanism replaced with shared memory for monitoring file changes.
-     - Signal handling for interruption (e.g., Ctrl+C) to allow safe termination.
-     - Modular integration with `data_struct_format` for data formatting.
+     - **Key Features**:
+       - Inotify mechanism replaced with shared memory for monitoring file changes.
+       - Signal handling for interruption (e.g., Ctrl+C) to allow safe termination.
+       - Modular integration with `data_struct_format` for data formatting.
 
 ### 3. **sys_com_controller.c**
    - **Description:** The `sys_com_controller.c` module initializes UART communication and sets up GPIO pins for TX and RX. It listens for incoming data over UART, processes it as `DataPacket` structures, and then uses the `data_struct_format.c` module to format and display the data. This program ensures reliable communication with the STM32 Nucleo-F746ZG board and prepares data for further processing.
