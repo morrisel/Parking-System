@@ -14,22 +14,25 @@ This document provides detailed information about the components running on the 
      - Ensures that the formatted data is consistent and ready for inter-process communication.
 
 ### 2. **ipc_sender.c**
-   - **Description:** This program reads GPS data from a file and sends it to a FIFO (named pipe). It facilitates the transfer of sensor data to other processes on the BBG or the central server.
-
-   - **Description:**  
-
+   - **Description:** This program reads GPS data from a shared memory segment and writes it to a FIFO (named pipe). It handles signal interruptions `SIGINT` to ensure data consistency and uses formatted data from the `data_struct_format.c` module before transmission.
    - **Functionality:**
-   
-     - Reads data from `ext_data.txt`.
-     - Sends data to a FIFO defined by `FIFO_PATH`.
-     - Handles interruptions gracefully, ensuring data consistency.
+     - Reads GPS data from shared memory.
+     - Writes data to a FIFO defined by `FIFO_PATH`.
+     - Gracefully handles signals like `SIGINT` to ensure a safe shutdown.
+     - Uses `get_formatted_data` from `data_struct_format.c` to format the data before sending.
+     **Key Features**:
+     - Inotify mechanism replaced with shared memory for monitoring file changes.
+     - Signal handling for interruption (e.g., Ctrl+C) to allow safe termination.
+     - Modular integration with `data_struct_format` for data formatting.
 
 ### 3. **sys_com_controller.c**
-   - **Description:** The `sys_com_controller` module is the entry point for the BBG client application. It initializes communication with the STM32 Nucleo-F746ZG board via the GPIO interface. This program will receive data from the board, process it using the `data_formatter.c` module, and save the processed data to the `ext_data.txt` file.
+   - **Description:** The `sys_com_controller.c` module initializes UART communication and sets up GPIO pins for TX and RX. It listens for incoming data over UART, processes it as `DataPacket` structures, and then uses the `data_struct_format.c` module to format and display the data. This program ensures reliable communication with the STM32 Nucleo-F746ZG board and prepares data for further processing.
    - **Functionality:**
-     - Reads data from UART1.
-     - Processes and validates the received messages.
-     - Sends acknowledgment responses back via UART.
+     - Initializes UART and GPIO pins for communication.
+     - Reads incoming data from UART.
+     - Processes and formats the received data using `data_struct_format.c`.
+     - Displays data in both hexadecimal and human-readable formats.
+     - Sends acknowledgment responses back via UART if necessary.
 
 ### 4. **tcp_client.c**
    - **Description:** This client program reads data from a FIFO and sends it to a TCP server. It is the final stage in the data transmission pipeline on the BBG.
