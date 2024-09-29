@@ -83,13 +83,13 @@ Start the `out_tcp_client` program to read from `tmp/gps_pipe` and send the data
 ```
 
 #### 2. Start sys_com_controller:
-Run the `sys_com_controller` to initiate communication and receive data from the board, and save the processed data to the `ext_data.txt` file.
+Run the `sys_com_controller` program to initiate communication and receive data of `DataPacket` struct from the STM32 NUCLEO-F746ZG board.
 ```sh
 ./sys_com_controller
 ```
 
 #### 3. Start ipc_sender:
-Run the `out_ipc_sender` program to begin reading GPS data from the `ext_data.txt` file and sending it to `tmp/gps_pipe`.
+Run the `out_ipc_sender` program to begin reading GPS data from the shared memory segment and sending it to `tmp/gps_pipe`.
 ```sh
 ./out_ipc_sender
 ```
