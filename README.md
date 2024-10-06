@@ -31,9 +31,7 @@ Parking-System/
 │   └── README.md
 ├── nuctobbg/
 │   ├── Core/
-│   ├── Debug/
 │   ├── Drivers/
-│   ├── nuctobbg Debug.launch
 │   ├── nuctobbg.ioc
 │   ├── STM32F746ZGTX_FLASH.ld
 │   └── STM32F746ZGTX_RAM.ld
@@ -43,6 +41,5 @@ Parking-System/
     ├── build/
     ├── docs/
     └── README.md
-
-
+```
 Each sub-project (Server, bbg, nuctobbg) contains its own documentation and codebase, with README.md files in their respective directories providing more detailed technical descriptions specific to that module.
