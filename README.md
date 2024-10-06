@@ -21,6 +21,7 @@ The Parking System is a robust and scalable solution that efficiently manages pa
 
 
 Base Directory Structure:
+```
 Parking-System/
 ├── bbg/
 │   ├── bin/
