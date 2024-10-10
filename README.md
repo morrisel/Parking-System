@@ -45,3 +45,5 @@ Parking-System/
 Each sub-project (Server, bbg, nuctobbg) contains its own documentation and codebase, with README.md files in their respective directories providing more detailed technical descriptions specific to that module.
 
 ![](docs/prksys_d.drawio.png)
+
+---
