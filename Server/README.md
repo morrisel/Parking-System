@@ -1,7 +1,9 @@
-# Parking System Technical Documentation
+# Parking System Server Technical Documentation
+
 
 ## Introduction
-The Parking System is designed to monitor and manage parking spaces in real-time. It utilizes a client-server architecture where parking sensors (clients) communicate with a central server for data processing and storage. The system leverages multithreading, parallel processing, and inter-process communication (IPC) mechanisms to achieve efficient and reliable operation in a Linux environment.
+This document provides detailed information about the Server of the Parking System project. This is a multi-client server system that receives data from clients, including their IP addresses, MAC addresses, and GPS data. The server records and updates client information in the database.
+
 
 ## Components and Functionality
 ### Server Side (Linux)
